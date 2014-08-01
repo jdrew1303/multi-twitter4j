@@ -2,8 +2,10 @@ package org.insight.twitter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -57,15 +59,74 @@ public class MultiTwitter extends LimitedTwitterResources {
 		this.configuredBots = getConfiguredBots(configFile);
 	}
 
-	/*
-	 * Useful single method calls for paging, cursors etc:
+	/* ============================================================================
+	 * Useful single method calls for paging through results, avoiding cursors etc:
+	 * ============================================================================
 	 */
 
 	//TODO
-
+	
+	/*
+	 * Timelines
+	 */
+	
+	public List<Status> getFullUserTimeline(String screenName) {
+		List<Status> timeline = new ArrayList<Status>();
+		
+		
+		Paging paging = new Paging();
+		paging.count(200);
+	
+		//...	
+		
+		return timeline;
+	}
+	
+	/* 
+	 * Tweets
+	 */
+	
+	//TODO		
 
 	/*
+	 * Search
+	 */
+	
+	//TODO
+	
+	/*
+	 * FriendsFollowers
+	 */
+	
+	//TODO
+	
+	/*
+	 * Users
+	 */
+	
+	//TODO
+	
+	/*
+	 * FavoritesResources
+	 */
+	
+	//TODO
+	
+	/*
+	 * ListsResources
+	 */
+	
+	//TODO
+	
+	/*
+	 * TrendsResources
+	 */
+	
+	//TODO	
+
+	/* ========================================================
 	 * Twitter4J Wrapper Implementations:
+	 * ========================================================
 	 */
 
 	/*
@@ -324,7 +385,6 @@ public class MultiTwitter extends LimitedTwitterResources {
 		return (new TwitterCommand<PagableResponseList<User>>() {
 			@Override
 			public PagableResponseList<User> fetchResponse(TwitterBot bot) throws TwitterException {
-
 				return bot.getTwitter().friendsFollowers().getFollowersList(screenName, cursor, count, skipStatus, includeUserEntities);
 			}
 		}).getResponse(EndPoint.FOLLOWERS_LIST);
@@ -528,7 +588,6 @@ public class MultiTwitter extends LimitedTwitterResources {
 		return (new TwitterCommand<PagableResponseList<UserList>>() {
 			@Override
 			public PagableResponseList<UserList> fetchResponse(TwitterBot bot) throws TwitterException {
-
 				return bot.getTwitter().list().getUserListMemberships(listMemberScreenName, cursor);
 			}
 		}).getResponse(EndPoint.LISTS_MEMBERSHIPS);
@@ -854,7 +913,6 @@ public class MultiTwitter extends LimitedTwitterResources {
 		Set<String> botIDs = new HashSet<String>();
 		Properties t4jProperties = new Properties();
 		try {
-			// 
 			System.out.println("Reading Bot Configs from: " + "/" + configFile);
 			InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
 
@@ -885,7 +943,6 @@ public class MultiTwitter extends LimitedTwitterResources {
 	 */
 	private TwitterBot takeBot(final EndPoint endpoint) throws TwitterException {
 		// Either Block with take() until a bot is available, or throw rate limit exception:
-
 		// Lazy load bots to endpoints:
 		endpoint.getBotQueue().reloadConfiguredBots(configuredBots);
 

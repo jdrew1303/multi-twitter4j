@@ -33,21 +33,15 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		this.endpoint = endpoint;
 	}
 
-
 	@Override
 	public boolean offer(TwitterBot e) {
 		// Prevent Duplicates During Reloads:
 		if ( !super.contains(e) ) {
-		
 			loadedBots.add(e);
-						
 			//System.err.println("q Adding Bot to Queue!! " + endpoint + " " + e );
 			return super.offer(e);
-			
 		} else {
-			
 			//System.err.println("q Bot EXISTS !! " + endpoint + " " + e );
-			
 			return false;
 		}
 	}
@@ -89,7 +83,6 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		//System.out.println("TWITTERAPIDEBUG:2 " + endpoint + "Q Blocking Took bot: " + bot + " Ratelimit:" + bot.getCachedRateLimitStatus().getRemaining());
 		return bot;
 	}
-
 
 	private boolean checkBot(TwitterBot bot) {
 		if (bot == null) {
@@ -139,7 +132,6 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 	}
 		
 	public boolean reloadConfiguredBots(final Set<String> cnfBots) {
-		
 		Set<String> configureBots = new HashSet<String>(cnfBots);
 		// Add Application Only endpoints:
 		if (endpoint.hasApplicationOnlySupport()) {
@@ -149,22 +141,18 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		// If there are not bots loaded yet:
 		if (loadedBots.size() == 0) {
 			System.out.println(endpoint + " 0 Bots loaded, reloading: " + configureBots.size() + " from memory "); 
-		}
-		
-		// If bots are loaded, check for new additions:
-		else 			
-		{
+		} else 	{
+			// If bots are loaded, check for new additions:
 			//System.err.println("HAVE KNOWN BOTS! CHECKING!!");			
 			if ( loadedBots.size() == configureBots.size() ) {
 				//System.err.println(endpoint + " KNOWN BOTS! NOT RELOADING! " + loadedBots.size()); 
-				return true;
-								
+				return true;	
 			} else {
 				System.err.println(endpoint + " KNOWN BOTS! NEW FOUND! RELOADING! loaded: " +loadedBots.size() + " conf: " + configureBots.size()); 
 				// Remove already known bots:
 				for (TwitterBot bot : loadedBots) {
 					configureBots.remove(bot.getConfig());			
-				}			
+				}		
 			}
 		}
 				
@@ -181,5 +169,4 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		}
 		return true;
 	}
-
 }

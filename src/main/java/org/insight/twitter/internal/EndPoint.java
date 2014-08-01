@@ -64,7 +64,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 		@Override public String toString() { return "/friends/list"; } 
 	},
 	FRIENDS_IDS { 
-		@Override	public String toString() { return "/friends/ids";	 } 
+		@Override public String toString() { return "/friends/ids";	 } 
 	},
 
 	FOLLOWERS_LIST { 
@@ -114,7 +114,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	 */
 
 	LISTS_LIST { 
-		@Override public String toString() {	return "/lists/list"; }	 
+		@Override public String toString() {	 return "/lists/list"; }	 
 	},
 	LISTS_MEMBERS {	
 		@Override public String toString() { return "/lists/members"; } 
@@ -129,19 +129,19 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 		@Override public String toString() { return "/lists/ownerships"; }
 	},
 	LISTS_SHOW { 
-		@Override public String toString() {	return "/lists/show"; } 	
+		@Override public String toString() {	 return "/lists/show"; } 	
 	},
 	LISTS_STATUSES { 
 		@Override public String toString() { return "/lists/statuses"; }
 	},
 	LISTS_SUBSCRIBERS { 
-		@Override public String toString() {	return "/lists/subscribers"; }
+		@Override public String toString() {	 return "/lists/subscribers"; }
 	},
 	LISTS_SUBSCRIBERS_SHOW { 
-		@Override public String toString() {	return "/lists/subscribers/show"; }
+		@Override public String toString() { return "/lists/subscribers/show"; }
 	},
 	LISTS_SUBSCRIPTIONS { 
-		@Override public String toString() {	return "/lists/subscriptions"; } 
+		@Override public String toString() { return "/lists/subscriptions"; } 
 	},
 
 	/*
@@ -170,7 +170,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	 */
 
 	TRENDS_PLACE { 
-		@Override public String toString() {	return "/trends/place"; }
+		@Override public String toString() {	 return "/trends/place"; }
 	},
 	TRENDS_AVAILABLE { 
 		@Override public String toString() { return "/trends/available"; }
