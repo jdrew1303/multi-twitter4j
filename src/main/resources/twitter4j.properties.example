@@ -1,0 +1,36 @@
+# Common properties
+debug=false
+jsonStoreEnabled=true
+includeEntities=true
+includeRTs=true
+http.useSSL=true
+http.retryCount=5
+http.retryIntervalSecs=5
+
+## Example Configuration:
+
+# Main Application (Common to all* bots, and Application Only Authentication +180 on many endpoints): 
+oauth.consumerKey= ...
+oauth.consumerSecret= ...
+
+## Bots are defined as: Pairs of Access Token + Secret:
+# These are the access tokens returned by Twitter when authenticated to the Application Key above.
+# bot.{BOTNAME}.oauth.accessToken 
+# bot.{BOTNAME}.oauth.accessTokenSecret
+
+# Bot (Application Owner, Default token from app page)
+bot.owner.oauth.accessToken= ...
+bot.owner.oauth.accessTokenSecret= ...
+
+# Bot (extra account)
+bot.ac1.oauth.accessToken= ...
+bot.ac1.oauth.accessTokenSecret= ...
+
+#etc...
+
+# You can also define everything like this:
+# Only this Key + Token Combination will be used, the application only token will not be loaded in this case.
+bot.test.oauth.consumerKey= ...
+bot.test.oauth.consumerSecret= ...
+bot.test.oauth.accessToken= ...
+bot.test.oauth.accessTokenSecret= ...
