@@ -1,8 +1,12 @@
 package org.insight.twitter;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +36,7 @@ import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.Trends;
 import twitter4j.TwitterException;
+import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 import twitter4j.UserList;
 
@@ -65,63 +70,106 @@ public class MultiTwitter extends LimitedTwitterResources {
 	 */
 
 	//TODO
-	
+
 	/*
 	 * Timelines
 	 */
-	
-	public List<Status> getFullUserTimeline(String screenName) {
-		List<Status> timeline = new ArrayList<Status>();
+
+	public List<String> getFullUserTimeline(long userId, Date oldest_created_at) {
 		
-		
+		List<String> timeline = new ArrayList<String>();
+
 		Paging paging = new Paging();
 		paging.count(200);
-	
-		//...	
+
+		int ctweets = 0;
 		
+		boolean datelimit = false;
+		
+		while (ctweets < 3200 && !datelimit) {
+
+			try {
+			ResponseList<Status> page = getUserTimeline(userId, paging);
+									
+		
+			Collection<Long> lowestID = new ArrayList<Long>();
+			for (Status s : page) {
+				lowestID.add(s.getId());
+				
+				if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
+					//System.out.println("Date Limit!");
+					datelimit = true;
+					continue;
+				}
+				
+				timeline.add(TwitterObjectFactory.getRawJSON(s));
+			}
+			
+			System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
+
+			if (lowestID.size() < 1) {
+				break;
+			}
+
+			// Max ID is the lowest ID tweet you have already processed
+			paging.setMaxId((Collections.min(lowestID) - 1));
+			//pg.setSinceId(sinceId);
+
+			ctweets = ctweets + page.size();
+			
+			} catch (TwitterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
+				break;
+			}
+
+		}
+
 		return timeline;
 	}
-	
+
+
 	/* 
 	 * Tweets
 	 */
-	
+
 	//TODO		
 
 	/*
 	 * Search
 	 */
-	
+
 	//TODO
-	
+
 	/*
 	 * FriendsFollowers
 	 */
-	
+
 	//TODO
-	
+
 	/*
 	 * Users
 	 */
-	
+
 	//TODO
-	
+
 	/*
 	 * FavoritesResources
 	 */
-	
+
 	//TODO
-	
+
 	/*
 	 * ListsResources
 	 */
-	
+
 	//TODO
-	
+
 	/*
 	 * TrendsResources
 	 */
-	
+
 	//TODO	
 
 	/* ========================================================
@@ -914,7 +962,9 @@ public class MultiTwitter extends LimitedTwitterResources {
 		Properties t4jProperties = new Properties();
 		try {
 			System.out.println("Reading Bot Configs from: " + "/" + configFile);
-			InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
+			
+			//InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
+			InputStream in = new FileInputStream(configFile);
 
 			t4jProperties.load(in);
 
