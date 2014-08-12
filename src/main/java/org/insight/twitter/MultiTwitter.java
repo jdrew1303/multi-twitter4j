@@ -1,6 +1,5 @@
 package org.insight.twitter;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -963,8 +962,8 @@ public class MultiTwitter extends LimitedTwitterResources {
 		try {
 			System.out.println("Reading Bot Configs from: " + "/" + configFile);
 			
-			//InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
-			InputStream in = new FileInputStream(configFile);
+			InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
+			//InputStream in = new FileInputStream(configFile);
 
 			t4jProperties.load(in);
 
