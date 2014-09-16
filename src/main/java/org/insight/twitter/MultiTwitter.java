@@ -165,6 +165,33 @@ public class MultiTwitter extends LimitedTwitterResources {
 	 */
 
 	//TODO
+	
+	public List<User> getAllListMembers(long listId) {
+		
+		List<User> members = new ArrayList<User>();
+		
+		long cursor = -1;
+		
+		try {
+			
+			while(cursor != 0) {
+			
+			PagableResponseList<User> pg = getUserListMembers(listId, cursor);
+			
+			members.addAll(pg);
+			
+			cursor = pg.getNextCursor();
+			}
+			
+			
+		} catch (TwitterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return members;
+	}
+		
 
 	/*
 	 * TrendsResources
