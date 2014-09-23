@@ -128,6 +128,57 @@ public class MultiTwitter extends LimitedTwitterResources {
 
 		return timeline;
 	}
+	
+	
+	
+public List<String> getUpdateUserTimeline(long userId, long since_id) {
+		
+		List<String> timeline = new ArrayList<String>();
+
+		Paging paging = new Paging();
+		paging.count(200);
+		paging.setSinceId(since_id);
+
+		int ctweets = 0;
+		
+		boolean datelimit = false;
+		
+		while (ctweets < 3200 && !datelimit) {
+
+			try {
+			ResponseList<Status> page = getUserTimeline(userId, paging);
+									
+		
+			Collection<Long> lowestID = new ArrayList<Long>();
+			for (Status s : page) {
+				lowestID.add(s.getId());
+								
+				timeline.add(TwitterObjectFactory.getRawJSON(s));
+			}
+			
+			System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
+
+			if (lowestID.size() < 1) {
+				break;
+			}
+
+			// Max ID is the lowest ID tweet you have already processed
+			paging.setMaxId((Collections.min(lowestID) - 1));
+			paging.setSinceId(since_id);
+
+			ctweets = ctweets + page.size();
+			
+			} catch (TwitterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
+				break;
+			}
+
+		}
+
+		return timeline;
+	}
 
 
 	/* 
