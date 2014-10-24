@@ -14,7 +14,7 @@ import twitter4j.conf.ConfigurationBuilder;
 /*
  * Wrapper for Twitter That keeps track of Rate Limits: One Instance per endpoint, per access token.
  * 
- * Don't use this directly, Use MultiTwitter!
+ * Don't use this directly, Use NewMultiTwitter!
  * 
  */
 
@@ -128,7 +128,7 @@ public final class TwitterBot implements Comparable<TwitterBot>{
 	}
 
 	// Don't use this instance to request anything other than the designated Endpoint.
-	// Only Use MultiTwitter!
+	// Only Use NewMultiTwitter!
 	// Rate limit Listener will fail if you do so!
 	public final Twitter getTwitter() {
 		return this.t4jConnection;	

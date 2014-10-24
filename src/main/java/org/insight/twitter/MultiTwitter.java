@@ -75,48 +75,48 @@ public class MultiTwitter extends LimitedTwitterResources {
 	 * Timelines
 	 */
 
-	public List<String> getFullUserTimeline(long userId, Date oldest_created_at) {
-		
+	public List<String> getUserTimelineToDate(long userId, Date oldest_created_at) {
+
 		List<String> timeline = new ArrayList<String>();
 
 		Paging paging = new Paging();
 		paging.count(200);
 
 		int ctweets = 0;
-		
+
 		boolean datelimit = false;
-		
+
 		while (ctweets < 3200 && !datelimit) {
 
 			try {
-			ResponseList<Status> page = getUserTimeline(userId, paging);
-									
-		
-			Collection<Long> lowestID = new ArrayList<Long>();
-			for (Status s : page) {
-				lowestID.add(s.getId());
-				
-				if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
-					//System.out.println("Date Limit!");
-					datelimit = true;
-					continue;
+				ResponseList<Status> page = getUserTimeline(userId, paging);
+
+
+				Collection<Long> lowestID = new ArrayList<Long>();
+				for (Status s : page) {
+					lowestID.add(s.getId());
+
+					if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
+						//System.out.println("Date Limit!");
+						datelimit = true;
+						continue;
+					}
+
+					timeline.add(TwitterObjectFactory.getRawJSON(s));
 				}
-				
-				timeline.add(TwitterObjectFactory.getRawJSON(s));
-			}
-			
-			System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
 
-			if (lowestID.size() < 1) {
-				break;
-			}
+				System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
 
-			// Max ID is the lowest ID tweet you have already processed
-			paging.setMaxId((Collections.min(lowestID) - 1));
-			//pg.setSinceId(sinceId);
+				if (lowestID.size() < 1) {
+					break;
+				}
 
-			ctweets = ctweets + page.size();
-			
+				// Max ID is the lowest ID tweet you have already processed
+				paging.setMaxId((Collections.min(lowestID) - 1));
+				//pg.setSinceId(sinceId);
+
+				ctweets = ctweets + page.size();
+
 			} catch (TwitterException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -128,11 +128,11 @@ public class MultiTwitter extends LimitedTwitterResources {
 
 		return timeline;
 	}
-	
-	
-	
-public List<String> getUpdateUserTimeline(long userId, long since_id) {
-		
+
+
+
+	public List<String> getUpdateUserTimeline(long userId, long since_id) {
+
 		List<String> timeline = new ArrayList<String>();
 
 		Paging paging = new Paging();
@@ -140,34 +140,34 @@ public List<String> getUpdateUserTimeline(long userId, long since_id) {
 		paging.setSinceId(since_id);
 
 		int ctweets = 0;
-		
+
 		boolean datelimit = false;
-		
+
 		while (ctweets < 3200 && !datelimit) {
 
 			try {
-			ResponseList<Status> page = getUserTimeline(userId, paging);
-									
-		
-			Collection<Long> lowestID = new ArrayList<Long>();
-			for (Status s : page) {
-				lowestID.add(s.getId());
-								
-				timeline.add(TwitterObjectFactory.getRawJSON(s));
-			}
-			
-			System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
+				ResponseList<Status> page = getUserTimeline(userId, paging);
 
-			if (lowestID.size() < 1) {
-				break;
-			}
 
-			// Max ID is the lowest ID tweet you have already processed
-			paging.setMaxId((Collections.min(lowestID) - 1));
-			paging.setSinceId(since_id);
+				Collection<Long> lowestID = new ArrayList<Long>();
+				for (Status s : page) {
+					lowestID.add(s.getId());
 
-			ctweets = ctweets + page.size();
-			
+					timeline.add(TwitterObjectFactory.getRawJSON(s));
+				}
+
+				System.out.println( userId + " Fetched: " +lowestID.size()+":" + ctweets +  " tweets");
+
+				if (lowestID.size() < 1) {
+					break;
+				}
+
+				// Max ID is the lowest ID tweet you have already processed
+				paging.setMaxId((Collections.min(lowestID) - 1));
+				paging.setSinceId(since_id);
+
+				ctweets = ctweets + page.size();
+
 			} catch (TwitterException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -216,33 +216,33 @@ public List<String> getUpdateUserTimeline(long userId, long since_id) {
 	 */
 
 	//TODO
-	
+
 	public List<User> getAllListMembers(long listId) {
-		
+
 		List<User> members = new ArrayList<User>();
-		
+
 		long cursor = -1;
-		
+
 		try {
-			
+
 			while(cursor != 0) {
-			
-			PagableResponseList<User> pg = getUserListMembers(listId, cursor);
-			
-			members.addAll(pg);
-			
-			cursor = pg.getNextCursor();
+
+				PagableResponseList<User> pg = getUserListMembers(listId, cursor);
+
+				members.addAll(pg);
+
+				cursor = pg.getNextCursor();
 			}
-			
-			
+
+
 		} catch (TwitterException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return members;
 	}
-		
+
 
 	/*
 	 * TrendsResources
@@ -1040,8 +1040,8 @@ public List<String> getUpdateUserTimeline(long userId, long since_id) {
 		Properties t4jProperties = new Properties();
 		try {
 			System.out.println("Reading Bot Configs from: " + "/" + configFile);
-			
-			//InputStream in = MultiTwitter.class.getResourceAsStream("/" + configFile);
+
+			//InputStream in = NewMultiTwitter.class.getResourceAsStream("/" + configFile);
 			InputStream in = new FileInputStream(configFile);
 
 			t4jProperties.load(in);

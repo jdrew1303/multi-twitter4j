@@ -31,8 +31,8 @@ import twitter4j.api.TweetsResources;
 import twitter4j.api.UsersResources;
 
 /*
- * This implements the unsupported methods, throwing exceptions, and leaves the valid methods to be implemented by MultiTwitter
- * This is class is mostly to make the implementing MultiTwitter class a bit easier to work with.
+ * This implements the unsupported methods, throwing exceptions, and leaves the valid methods to be implemented by NewMultiTwitter
+ * This is class is mostly to make the implementing NewMultiTwitter class a bit easier to work with.
  * Unimplemented methods are methods that can be used / affect authenticating users, not suitable for groups of bots.
  * 
  */
@@ -46,7 +46,7 @@ FavoritesResources, // Partially implemented
 ListsResources,
 PlacesGeoResources,
 TrendsResources,
-HelpResources // Rate Limits Are Handled internally. MultiTwitter makes a fake Aggregated RateLimit Status
+HelpResources // Rate Limits Are Handled internally. NewMultiTwitter makes a fake Aggregated RateLimit Status
 
 //Authenticating users only Resources Not Implemented:
 //*SpamReportingResource,
