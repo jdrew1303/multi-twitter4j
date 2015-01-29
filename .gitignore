@@ -12,12 +12,15 @@
 hs_err_pid*
 
 # Eclipse #
-target
+target/
 *.class
 *.project
 *.classpath
 *.settings
 *.*~
+
+.idea/
+multi-twitter4j.iml
 
 # Private #
 twitter4j.properties
