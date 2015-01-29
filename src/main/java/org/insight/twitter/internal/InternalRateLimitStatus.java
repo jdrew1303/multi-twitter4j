@@ -28,15 +28,12 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 	}
 
 	public InternalRateLimitStatus mergeWith(RateLimitStatus other) {
-
 		this.remaining += other.getRemaining();
 		this.limit += other.getLimit();
-
 		if (other.getSecondsUntilReset() < this.secondsUntilReset) {
 			this.secondsUntilReset = other.getSecondsUntilReset();
 			this.resetTimeInSeconds = other.getResetTimeInSeconds();
 		}
-
 		return this;
 	}
 
@@ -66,7 +63,6 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 		if (o == null || getClass() != o.getClass()) return false;
 
 		InternalRateLimitStatus other = (InternalRateLimitStatus) o;
-
 		if (limit != other.limit) return false;
 		if (remaining != other.remaining) return false;
 		if (resetTimeInSeconds != other.resetTimeInSeconds) return false;

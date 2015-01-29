@@ -18,7 +18,6 @@ import twitter4j.TwitterException;
  */
 
 public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
-
 	private static final long serialVersionUID = 1L;
 
 	// Scheduled service to revive sleeping bots
@@ -53,15 +52,13 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		do {
 			bot = super.poll();
 			if (bot == null) {
-				System.out.println( endpoint + " NO MORE BOTS IN QUEUE - WAIT!!! ");
-				System.out.println("");
+				System.err.println(String.format("** WARNING: Rate Limits for %s exhaused! Wait up to 15 min for next rate limit window!" , endpoint));
 				return null;
 			}
 		} while (!checkBot(bot));
-		//System.out.println( endpoint + " Non Blocking Took bot: " + bot + " Ratelimit:" + bot.getCachedRateLimitStatus().getRemaining());
+
 		return bot;
 	}
-
 
 	// Blocking take - return bot after a wait.
 	@Override
@@ -70,17 +67,15 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		do {
 			try {				
 				if (this.isEmpty() || (this.peek() == null)) {
-					System.out.println(String.format("** WARNING: Rate Limits for %s exhaused! Likely to wait 15 min for next rate limit window!" , endpoint));
+					System.out.println(String.format("** WARNING: Rate Limits for %s exhaused! Wait up to 15 min for next rate limit window!" , endpoint));
 				}
-				//System.out.println("TWITTERAPIDEBUG:0 " + endpoint + "Q Blocking taking bot");
 				bot = super.take();
-				//System.out.println("TWITTERAPIDEBUG:1 " + endpoint + "Q Blocking checking bot: " + bot + " Ratelimit:" + bot.getCachedRateLimitStatus().getRemaining());
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 				continue;
 			}
 		} while (!checkBot(bot));
-		//System.out.println("TWITTERAPIDEBUG:2 " + endpoint + "Q Blocking Took bot: " + bot + " Ratelimit:" + bot.getCachedRateLimitStatus().getRemaining());
+
 		return bot;
 	}
 
@@ -89,14 +84,13 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 			return false;
 		}
 		int remaining = bot.getCachedRateLimitStatus().getRemaining();
-
 		// Double check here, in case a bot was on 0, and there were no requests for >15 min.
 		long now = new Date().getTime();
 		long rateLimitAge = (bot.getCachedRateLimitStatus().getResetTimeInSeconds() * 1000) - now;
-		if ((remaining) < 1 && (rateLimitAge > 0)) {
-			remaining = bot.getRateLimitStatus().getRemaining();
+		if ((remaining < 1) && (rateLimitAge > 0)) {
+			bot.refreshRateLimit();
+			remaining = bot.getCachedRateLimitStatus().getRemaining();
 		}
-		
 		// If the head of the queue is 0, it means we've run out of bots. Time to sleep:
 		if (remaining < 1) {
 			//System.out.println("Queue refresh in a while for .. "+ bot.toString());
@@ -104,16 +98,13 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 			if (howLong < 1) {
 				// Wait 10 seconds if reset time is 0 or negative.
 				howLong = 10;
-				//System.out.println("Reset Time too close, adding a few seconds longer..."+ bot.toString());
 			} else {
-				// N seconds + 10 because reset times can be flaky.	
-				howLong = howLong + 5;			
+				// N seconds + 5 because reset times can be flaky.	
+				howLong += 5;			
 			}
-			
 			scheduler.schedule(new DelayedRateLimitRefresh(bot, this), howLong, TimeUnit.SECONDS);
 			System.out.println("Put "+ bot.toString() +"  to sleep for " + howLong);
 			return false;
-
 		} else {
 			return true;
 		}
@@ -131,8 +122,8 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		scheduler.shutdownNow();
 	}
 		
-	public boolean reloadConfiguredBots(final Set<String> cnfBots) {
-		Set<String> configureBots = new HashSet<String>(cnfBots);
+	public boolean reloadConfiguredBots(final Set<String> confBots) {
+		Set<String> configureBots = new HashSet<String>(confBots); 
 		// Add Application Only endpoints:
 		if (endpoint.hasApplicationOnlySupport()) {
 			configureBots.add("app");
@@ -143,9 +134,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 			System.out.println(endpoint + " 0 Bots loaded, reloading: " + configureBots.size() + " from memory "); 
 		} else 	{
 			// If bots are loaded, check for new additions:
-			//System.err.println("HAVE KNOWN BOTS! CHECKING!!");			
 			if ( loadedBots.size() == configureBots.size() ) {
-				//System.err.println(endpoint + " KNOWN BOTS! NOT RELOADING! " + loadedBots.size()); 
 				return true;	
 			} else {
 				System.err.println(endpoint + " KNOWN BOTS! NEW FOUND! RELOADING! loaded: " +loadedBots.size() + " conf: " + configureBots.size()); 

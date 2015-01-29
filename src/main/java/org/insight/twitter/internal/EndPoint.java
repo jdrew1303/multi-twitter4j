@@ -9,24 +9,14 @@ import java.util.Map;
  * As far as Twitter is concerned, there is 1 Ratelimit per endpoint, per access token.
  * 
  * To add unimplemented endpoints, add a ENDPOINT_NAME and override .toString() with the Twitter API endpoint name.
- * Also Edit NewMultiTwitter to make the calls, and remove deprecation notices / exceptions LimitedTwitterResources
+ * Also Edit MultiTwitter to make the calls, and remove deprecation notices / exceptions LimitedTwitterResources
  * 
  */
 
-interface GetBotQueue {
-	public BotQueue getBotQueue();
-}
-
-interface ApplicationOnlySupport {
-	public boolean hasApplicationOnlySupport();
-}
-
-public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
-{
+public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 	/*
 	 * TimelinesResources
 	 */
-
 	STATUSES_USER_TIMELINE { 
 		@Override public String toString() { return "/statuses/user_timeline"; } 
 	},
@@ -34,7 +24,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/* 
 	 * TweetsResources
 	 */
-
 	STATUSES_RETWEETS { 
 		@Override public String toString() { return "/statuses/retweets/:id"; } 
 	},
@@ -51,7 +40,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * SearchResource
 	 */
-
 	SEARCH_TWEETS { 
 		@Override public String toString() { return "/search/tweets"; } 
 	},
@@ -59,7 +47,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * FriendsFollowersResources
 	 */
-
 	FRIENDS_LIST { 
 		@Override public String toString() { return "/friends/list"; } 
 	},
@@ -81,7 +68,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * UsersResources
 	 */
-
 	USERS_LOOKUP { 
 		@Override public String toString() { return "/users/lookup"; } 
 	},
@@ -104,7 +90,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * FavoritesResources
 	 */
-
 	FAVORITES_LIST { 
 		@Override public String toString() { return "/favorites/list"; }
 	}, 
@@ -112,7 +97,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * ListsResources
 	 */
-
 	LISTS_LIST { 
 		@Override public String toString() {	 return "/lists/list"; }	 
 	},
@@ -147,7 +131,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * PlacesGeoResources
 	 */
-
 	GEO_ID { 
 		@Override public String toString() { return "/geo/id"; } 
 		@Override public boolean hasApplicationOnlySupport() { return false;	}
@@ -168,7 +151,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * TrendsResources
 	 */
-
 	TRENDS_PLACE { 
 		@Override public String toString() {	 return "/trends/place"; }
 	},
@@ -177,17 +159,15 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	},
 	TRENDS_CLOSEST { 
 		@Override public String toString() { return "/trends/closest"; }
-	},
-
+	}
+	//
 	;
 
 	/*
 	 *  Define new Endpoints in the same way:
-	 *  
 	 *  RESOURCE_ENDPOINT { 
 	 *  	@Override public String toString() { return "/resource/endpoint"; }
 	 *  }
-	 *  
 	 */
 
 	// Make a queue for each endpoint:
@@ -204,7 +184,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 		return botqueues.get(this.toString());
 	}	
 
-	// Default - Most endpoints have application only calls.
+	// Default: Most endpoints have application only calls.
 	@Override
 	public boolean hasApplicationOnlySupport() {
 		return true;
@@ -220,5 +200,12 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 		}
 		return null;
 	}
+}
 
+interface GetBotQueue {
+	public BotQueue getBotQueue();
+}
+
+interface ApplicationOnlySupport {
+	public boolean hasApplicationOnlySupport();
 }

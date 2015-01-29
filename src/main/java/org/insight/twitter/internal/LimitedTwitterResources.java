@@ -41,20 +41,21 @@ TimelinesResources,
 TweetsResources,
 SearchResource,
 FriendsFollowersResources,
-UsersResources, // Partially Implemented - User Specifics (Profile modification etc. disabled - but, could be handy for bot management)
-FavoritesResources, // Partially implemented
+//**Partially Implemented - User Specifics (Profile modification etc. disabled - but, could be handy for bot management)
+UsersResources,
+//**Partially implemented:
+FavoritesResources,
 ListsResources,
 PlacesGeoResources,
 TrendsResources,
-HelpResources // Rate Limits Are Handled internally. NewMultiTwitter makes a fake Aggregated RateLimit Status
-
-//Authenticating users only Resources Not Implemented:
-//*SpamReportingResource,
-//*SavedSearchesResources,
-//*SuggestedUsersResources,
-//*DirectMessagesResources,
-
-// Internal:
+//**Rate Limits Are Handled internally. MultiTwitter makes a fake Aggregated RateLimit Status:
+HelpResources
+//**Authenticating users only Resources Not Implemented:
+//SpamReportingResource,
+//SavedSearchesResources,
+//SuggestedUsersResources,
+//DirectMessagesResources,
+//**Internal:
 //OAuthSupport,
 //OAuth2Support,
 //TwitterBase
@@ -106,7 +107,7 @@ HelpResources // Rate Limits Are Handled internally. NewMultiTwitter makes a fak
 	}
 
 	/*
-	 *  Now for the Unsupported methods, these will just throw exceptions.
+	 *  Throw exceptions for Unsupported Methods
 	 */
 
 	/*
@@ -494,7 +495,6 @@ HelpResources // Rate Limits Are Handled internally. NewMultiTwitter makes a fak
 	 * Unsupported ListsResources
 	 */
 
-
 	@Override
 	@Deprecated
 	public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, long cursor, boolean filterToOwnedLists) throws TwitterException{
@@ -726,7 +726,5 @@ HelpResources // Rate Limits Are Handled internally. NewMultiTwitter makes a fak
 	public String getTermsOfService() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
-
-
 
 }

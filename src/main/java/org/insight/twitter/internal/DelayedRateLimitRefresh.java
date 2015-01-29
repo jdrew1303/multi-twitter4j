@@ -1,6 +1,5 @@
 package org.insight.twitter.internal;
 
-
 /*
  * Add a Bot to a queue (used with Scheduler)
  */
@@ -16,7 +15,7 @@ public class DelayedRateLimitRefresh implements Runnable {
 
 	@Override
 	public void run() {
-		bot.getRateLimitStatus();
+		bot.refreshRateLimit();
 		queue.offer(bot);
 	}
 }
