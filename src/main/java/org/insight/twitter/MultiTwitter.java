@@ -37,15 +37,14 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 		this(true, "twitter4j.properties");
 	}
 
-	public MultiTwitter(final boolean blockOnRateLimit, String configFile) {
-		this.blockOnRateLimit = blockOnRateLimit;
+	public MultiTwitter(final boolean blocking, final String configFile) {
+		this.blockOnRateLimit = blocking;
 		this.configuredBots = getConfiguredBots(configFile);
 	}
 
 	/*
-	 * All unimplemented methods will throw UnsupportedMethodException 
-	 */	
-	
+	 * All unimplemented methods will throw UnsupportedMethodException
+	 */
 	/*
 	 * --------------------------
 	 * Utility Methods:
@@ -57,23 +56,23 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 	 */
 
 	@Override
-	public Map<String, RateLimitStatus> getRateLimitStatus(String... resources) throws TwitterException {
+    public final Map<String, RateLimitStatus> getRateLimitStatus(final String... resources) throws TwitterException {
 		EndPoint[] endpoints = new EndPoint[resources.length];
-		for (int i=0; i < resources.length; i++) {
+		for (int i = 0; i < resources.length; i++) {
 			endpoints[i] = EndPoint.fromString(resources[i]);			
 		}
 		return getRateLimitStatus(endpoints);
 	}
 
 	@Override
-	public Map<String, RateLimitStatus> getRateLimitStatus()	throws TwitterException {
+    public final Map<String, RateLimitStatus> getRateLimitStatus()	throws TwitterException {
 		return 	getRateLimitStatus(EndPoint.values());
 	}
 
 	/*
 	 * Get combined Rate Limit for an endpoint (or several)
 	 */
-	public Map<String, RateLimitStatus> getRateLimitStatus(EndPoint[] endpoints) throws TwitterException {
+	public final Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint[] endpoints) throws TwitterException {
 		Map<String, RateLimitStatus> rateLimits = new HashMap<String, RateLimitStatus>();
 		for (EndPoint target : endpoints) {
 			rateLimits.putAll(getRateLimitStatus(target));
@@ -84,7 +83,7 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 	/*
 	 * Get Combined Rate Limit from all available bots
 	 */
-	public Map<String, RateLimitStatus> getRateLimitStatus(EndPoint endpoint) throws TwitterException {
+	public final Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint endpoint) throws TwitterException {
 		Map<String, RateLimitStatus> rateLimit = new HashMap<String, RateLimitStatus>();
 		InternalRateLimitStatus rl = new InternalRateLimitStatus();
 		Set<TwitterBot> allActiveBots = endpoint.getBotQueue().getLoadedBots();
@@ -98,7 +97,7 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 	/*
 	 * Read config file, extract all the access tokens.
 	 */
-	public static Set<String> getConfiguredBots(String configFile) {
+	public static Set<String> getConfiguredBots(final String configFile) {
 		Set<String> botIDs = new HashSet<String>();
 		Properties t4jProperties = new Properties();
 		try {
@@ -132,7 +131,9 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 		// Either Block with take() until a bot is available, or throw rate limit exception:
 		// Lazy load bots to endpoints:
 		endpoint.getBotQueue().reloadConfiguredBots(configuredBots);
+
 		TwitterBot bot = blockOnRateLimit ? endpoint.getBotQueue().take() : endpoint.getBotQueue().poll();
+		
 		if (bot == null) {
 			throw new TwitterException(endpoint + " Queue is EMPTY! Rate Limit for all Bots Reached!");
 		}	
@@ -156,7 +157,7 @@ public abstract class MultiTwitter extends LimitedTwitterResources {
 	 * Can be replaced with something else that manages bots & calls.
 	 */
 	public abstract class TwitterCommand<T> {		
-		public T getResponse(EndPoint endpoint) throws TwitterException {			
+		public final T getResponse(final EndPoint endpoint) throws TwitterException {			
 			T result = null;
 			int retryLimit = configuredBots.size();
 			while (true) {

@@ -19,12 +19,9 @@ import twitter4j.TwitterException;
 
 public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 	private static final long serialVersionUID = 1L;
-
 	// Scheduled service to revive sleeping bots
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
 	private final Set<TwitterBot> loadedBots = Collections.newSetFromMap(new ConcurrentHashMap<TwitterBot, Boolean>());
-	
 	private final EndPoint endpoint;
 
 	public BotQueue(final EndPoint endpoint) {
@@ -33,7 +30,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 	}
 
 	@Override
-	public boolean offer(TwitterBot e) {
+    public final boolean offer(final TwitterBot e) {
 		// Prevent Duplicates During Reloads:
 		if ( !super.contains(e) ) {
 			loadedBots.add(e);
@@ -47,7 +44,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 
 	// Non blocking Poll - return null if queue has no rate limits left.
 	@Override
-	public TwitterBot poll() {
+    public final TwitterBot poll() {
 		TwitterBot bot = null;
 		do {
 			bot = super.poll();
@@ -62,7 +59,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 
 	// Blocking take - return bot after a wait.
 	@Override
-	public TwitterBot take() {
+    public final TwitterBot take() {
 		TwitterBot bot = null;
 		do {
 			try {				
@@ -79,7 +76,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		return bot;
 	}
 
-	private boolean checkBot(TwitterBot bot) {
+	private boolean checkBot(final TwitterBot bot) {
 		if (bot == null) {
 			return false;
 		}
@@ -110,19 +107,19 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot>{
 		}
 	}
 
-	public Set<TwitterBot> getLoadedBots() {
+	public final Set<TwitterBot> getLoadedBots() {
 		return this.loadedBots;
 	}
 
-	public void shutdown() {
+	public final void shutdown() {
 		scheduler.shutdown();
 	}
 
-	public void shutdown(boolean force) {
+	public final void shutdown(final boolean force) {
 		scheduler.shutdownNow();
 	}
 		
-	public boolean reloadConfiguredBots(final Set<String> confBots) {
+	public final boolean reloadConfiguredBots(final Set<String> confBots) {
 		Set<String> configureBots = new HashSet<String>(confBots); 
 		// Add Application Only endpoints:
 		if (endpoint.hasApplicationOnlySupport()) {

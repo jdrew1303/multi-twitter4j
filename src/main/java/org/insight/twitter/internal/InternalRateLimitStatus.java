@@ -22,12 +22,12 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 
 	}
 
-	public RateLimitStatus withRemaining(int remaining) {
+	public final RateLimitStatus withRemaining(final int remaining) {
 		this.remaining = remaining;
 		return this;
 	}
 
-	public InternalRateLimitStatus mergeWith(RateLimitStatus other) {
+	public final InternalRateLimitStatus mergeWith(final RateLimitStatus other) {
 		this.remaining += other.getRemaining();
 		this.limit += other.getLimit();
 		if (other.getSecondsUntilReset() < this.secondsUntilReset) {
@@ -38,27 +38,27 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 	}
 
 	@Override
-	public int getRemaining() {
+    public final int getRemaining() {
 		return this.remaining;
 	}
 
 	@Override
-	public int getLimit() {
+    public final int getLimit() {
 		return this.limit;
 	}
 
 	@Override
-	public int getResetTimeInSeconds() {
+    public final int getResetTimeInSeconds() {
 		return this.resetTimeInSeconds;
 	}
 
 	@Override
-	public int getSecondsUntilReset() {
+    public final int getSecondsUntilReset() {
 		return this.secondsUntilReset;
 	}
 
 	@Override
-	public boolean equals(Object o) {
+    public final boolean equals(final Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 
@@ -72,7 +72,7 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 	}
 
 	@Override
-	public int hashCode() {
+    public final int hashCode() {
 		int result = remaining;
 		result = 31 * result + limit;
 		result = 31 * result + resetTimeInSeconds;
@@ -81,7 +81,7 @@ public class InternalRateLimitStatus implements RateLimitStatus {
 	}
 
 	@Override
-	public String toString() {
+    public final String toString() {
 		return "RateLimitStatusJSONImpl{" +
 				"remaining=" + remaining +
 				", limit=" + limit +

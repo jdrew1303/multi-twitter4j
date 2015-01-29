@@ -159,9 +159,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 	},
 	TRENDS_CLOSEST { 
 		@Override public String toString() { return "/trends/closest"; }
-	}
-	//
-	;
+	};
 
 	/*
 	 *  Define new Endpoints in the same way:
@@ -171,18 +169,18 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 	 */
 
 	// Make a queue for each endpoint:
-	private final static Map<String, BotQueue> botqueues = new HashMap<String, BotQueue>();
+	private static final Map<String, BotQueue> BOT_QUEUES = new HashMap<String, BotQueue>();
 
 	static {
 		for (EndPoint endpoint : EndPoint.values()) {
-			botqueues.put(endpoint.toString(), new BotQueue(endpoint));
+			BOT_QUEUES.put(endpoint.toString(), new BotQueue(endpoint));
 		}
 	}
 
 	@Override
 	public BotQueue getBotQueue() {
-		return botqueues.get(this.toString());
-	}	
+		return BOT_QUEUES.get(this.toString());
+	}
 
 	// Default: Most endpoints have application only calls.
 	@Override
@@ -190,7 +188,7 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 		return true;
 	}
 
-	public static EndPoint fromString(String resource) {
+	public static EndPoint fromString(final String resource) {
 		if (resource != null) {
 			for (EndPoint e : EndPoint.values()) {
 				if (resource.equalsIgnoreCase(e.toString())) {

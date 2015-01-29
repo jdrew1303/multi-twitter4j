@@ -48,8 +48,6 @@ FavoritesResources,
 ListsResources,
 PlacesGeoResources,
 TrendsResources,
-//**Rate Limits Are Handled internally. MultiTwitter makes a fake Aggregated RateLimit Status:
-HelpResources
 //**Authenticating users only Resources Not Implemented:
 //SpamReportingResource,
 //SavedSearchesResources,
@@ -59,50 +57,51 @@ HelpResources
 //OAuthSupport,
 //OAuth2Support,
 //TwitterBase
-{
-
+//**Rate Limits Are Handled internally. MultiTwitter makes a fake Aggregated RateLimit Status:
+HelpResources {
+    
 	private static final String UNSUPPORTED_METHOD = "This API call cannot be distributed between bots!";
 
 	/*
 	 * Interfaces
 	 */
-	public TimelinesResources timelines() {
+	public final TimelinesResources timelines() {
 		return this;
 	}
 
-	public TweetsResources tweets() {
+	public final TweetsResources tweets() {
 		return this;
 	}
 
-	public SearchResource search() {
+	public final SearchResource search() {
 		return this;
 	}
 
-	public FriendsFollowersResources friendsFollowers() {
+	public final FriendsFollowersResources friendsFollowers() {
 		return this;
 	}
 
-	public UsersResources users() {
+	public final UsersResources users() {
 		return this;
 	}
 
-	public FavoritesResources favorites() {
+	public final FavoritesResources favorites() {
 		return this;
 	}
 
-	public ListsResources list() {
+	public final ListsResources list() {
 		return this;
 	}
 
-	public PlacesGeoResources placesGeo() {
+	public final PlacesGeoResources placesGeo() {
 		return this;
 	}
 
-	public TrendsResources trends() {
+	public final TrendsResources trends() {
 		return this;
 	}
 
-	public HelpResources help() {
+	public final HelpResources help() {
 		return this;
 	}
 
@@ -115,50 +114,50 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getMentionsTimeline() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getMentionsTimeline() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getMentionsTimeline(Paging paging) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getMentionsTimeline(final Paging paging) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getUserTimeline() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getUserTimeline() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getUserTimeline(Paging paging) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getUserTimeline(final Paging paging) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getHomeTimeline() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getHomeTimeline() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getHomeTimeline(Paging paging) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getHomeTimeline(final Paging paging) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getRetweetsOfMe() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getRetweetsOfMe() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getRetweetsOfMe(Paging paging) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getRetweetsOfMe(final Paging paging) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -167,38 +166,38 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public Status destroyStatus(long statusId) throws TwitterException {
+    @Deprecated
+    public final Status destroyStatus(final long statusId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Status updateStatus(String status) throws TwitterException {
+    @Deprecated
+    public final Status updateStatus(final String status) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Status updateStatus(StatusUpdate latestStatus) throws TwitterException {
+    @Deprecated
+    public final Status updateStatus(final StatusUpdate latestStatus) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Status retweetStatus(long statusId) throws TwitterException {
+    @Deprecated
+    public final Status retweetStatus(final long statusId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public OEmbed getOEmbed(OEmbedRequest req) throws TwitterException {
+    @Deprecated
+    public final OEmbed getOEmbed(final OEmbedRequest req) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UploadedMedia uploadMedia(File mediaFile) throws TwitterException {
+    @Deprecated
+    public final UploadedMedia uploadMedia(final File mediaFile) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -213,92 +212,92 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public User createFriendship(long userId) throws TwitterException {
+    @Deprecated
+    public final User createFriendship(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createFriendship(String screenName) throws TwitterException {
+    @Deprecated
+    public final User createFriendship(final String screenName) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createFriendship(long userId, boolean follow) throws TwitterException {
+    @Deprecated
+    public final User createFriendship(final long userId, final boolean follow) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createFriendship(String screenName, boolean follow)	throws TwitterException {
+    @Deprecated
+    public final User createFriendship(final String screenName, final boolean follow)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyFriendship(long userId) throws TwitterException {
+    @Deprecated
+    public final User destroyFriendship(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyFriendship(String screenName) throws TwitterException {
+    @Deprecated
+    public final User destroyFriendship(final String screenName) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Relationship updateFriendship(long userId, boolean enableDeviceNotification, boolean retweets) throws TwitterException {
+    @Deprecated
+    public final Relationship updateFriendship(final long userId, final boolean enableDeviceNotification, final boolean retweets) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Relationship updateFriendship(String screenName, boolean enableDeviceNotification, boolean retweets) throws TwitterException {
+    @Deprecated
+    public final Relationship updateFriendship(final String screenName, final boolean enableDeviceNotification, final boolean retweets) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Friendship> lookupFriendships(long[] ids) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Friendship> lookupFriendships(final long[] ids) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Friendship> lookupFriendships(String[] screenNames) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Friendship> lookupFriendships(final String[] screenNames) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getIncomingFriendships(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getIncomingFriendships(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getOutgoingFriendships(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getOutgoingFriendships(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getFriendsIDs(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getFriendsIDs(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getFollowersIDs(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getFollowersIDs(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getNoRetweetsFriendships() throws TwitterException {
+    @Deprecated
+    public final IDs getNoRetweetsFriendships() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -307,158 +306,158 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public AccountSettings getAccountSettings() throws TwitterException {
+    @Deprecated
+    public final AccountSettings getAccountSettings() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User verifyCredentials() throws TwitterException {
+    @Deprecated
+    public final User verifyCredentials() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public AccountSettings updateAccountSettings(Integer trendLocationWoeid, Boolean sleepTimeEnabled, String startSleepTime, String endSleepTime, String timeZone, String lang)	throws TwitterException {
+    @Deprecated
+    public final AccountSettings updateAccountSettings(final Integer trendLocationWoeid, final Boolean sleepTimeEnabled, final String startSleepTime, final String endSleepTime, final String timeZone, final String lang)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfile(String name, String url, String location, String description) throws TwitterException {
+    @Deprecated
+    public final User updateProfile(final String name, final String url, final String location, final String description) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfileBackgroundImage(File image, boolean tile) throws TwitterException {
+    @Deprecated
+    public final User updateProfileBackgroundImage(final File image, final boolean tile) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfileBackgroundImage(InputStream image, boolean tile) throws TwitterException {
+    @Deprecated
+    public final User updateProfileBackgroundImage(final InputStream image, final boolean tile) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfileColors(String profileBackgroundColor, String profileTextColor, String profileLinkColor,	String profileSidebarFillColor, String profileSidebarBorderColor) throws TwitterException {
+    @Deprecated
+    public final User updateProfileColors(final String profileBackgroundColor, final String profileTextColor, final String profileLinkColor,	final String profileSidebarFillColor, final String profileSidebarBorderColor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfileImage(File image) throws TwitterException {
+    @Deprecated
+    public final User updateProfileImage(final File image) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User updateProfileImage(InputStream image) throws TwitterException {
+    @Deprecated
+    public final User updateProfileImage(final InputStream image) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public PagableResponseList<User> getBlocksList() throws TwitterException {
+    @Deprecated
+    public final PagableResponseList<User> getBlocksList() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public PagableResponseList<User> getBlocksList(long cursor) throws TwitterException {
+    @Deprecated
+    public final PagableResponseList<User> getBlocksList(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getBlocksIDs() throws TwitterException {
+    @Deprecated
+    public final IDs getBlocksIDs() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getBlocksIDs(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getBlocksIDs(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createBlock(long userId) throws TwitterException {
+    @Deprecated
+    public final User createBlock(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createBlock(String screenName) throws TwitterException {
+    @Deprecated
+    public final User createBlock(final String screenName) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyBlock(long userId) throws TwitterException {
+    @Deprecated
+    public final User destroyBlock(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyBlock(String screen_name) throws TwitterException {
+    @Deprecated
+    public final User destroyBlock(final String screen_name) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public void removeProfileBanner() throws TwitterException {
+    @Deprecated
+    public final void removeProfileBanner() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public void updateProfileBanner(File image) throws TwitterException {
+    @Deprecated
+    public final void updateProfileBanner(final File image) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public void updateProfileBanner(InputStream image) throws TwitterException {
+    @Deprecated
+    public final void updateProfileBanner(final InputStream image) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createMute(long userId) throws TwitterException {
+    @Deprecated
+    public final User createMute(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User createMute(String screenName) throws TwitterException {
+    @Deprecated
+    public final User createMute(final String screenName) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyMute(long userId) throws TwitterException {
+    @Deprecated
+    public final User destroyMute(final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public User destroyMute(String screenName) throws TwitterException {
+    @Deprecated
+    public final User destroyMute(final String screenName) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public IDs getMutesIDs(long cursor) throws TwitterException {
+    @Deprecated
+    public final IDs getMutesIDs(final long cursor) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public PagableResponseList<User> getMutesList(long cursor)	throws TwitterException {
+    @Deprecated
+    public final PagableResponseList<User> getMutesList(final long cursor)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -468,26 +467,26 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getFavorites() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getFavorites() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Status> getFavorites(Paging paging) throws TwitterException {
+    @Deprecated
+    public final ResponseList<Status> getFavorites(final Paging paging) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Status createFavorite(long id) throws TwitterException {
+    @Deprecated
+    public final Status createFavorite(final long id) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public Status destroyFavorite(long id) throws TwitterException {
+    @Deprecated
+    public final Status destroyFavorite(final long id) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -496,194 +495,194 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, long cursor, boolean filterToOwnedLists) throws TwitterException{
+    @Deprecated
+    public final PagableResponseList<UserList> getUserListMemberships(final String listMemberScreenName, final long cursor, final boolean filterToOwnedLists) throws TwitterException{
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public PagableResponseList<UserList> getUserListMemberships(long listMemberId, long cursor, boolean filterToOwnedLists) throws TwitterException{
+    @Deprecated
+    public final PagableResponseList<UserList> getUserListMemberships(final long listMemberId, final long cursor, final boolean filterToOwnedLists) throws TwitterException{
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public PagableResponseList<UserList> getUserListMemberships(long cursor) throws TwitterException{
+    @Deprecated
+    public final PagableResponseList<UserList> getUserListMemberships(final long cursor) throws TwitterException{
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMember(long ownerId, String slug, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMember(final long ownerId, final String slug, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMember(long ownerId, String slug) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMember(final long ownerId, final String slug) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMembers(long ownerId, long[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMembers(final long ownerId, final long[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMembers(long ownerId, String[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMembers(final long ownerId, final String[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMember(String ownerScreenName, String slug, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMember(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListSubscription(long ownerId) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListSubscription(final long ownerId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListSubscription(long ownerId, String slug) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListSubscription(final long ownerId, final String slug) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListSubscription(String ownerScreenName, String slug) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListSubscription(final String ownerScreenName, final String slug) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListSubscription(long ownerId, String slug)	throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListSubscription(final long ownerId, final String slug)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListSubscription(String ownerScreenName,	String slug) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListSubscription(final String ownerScreenName,	String slug) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMember(long ownerId, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMember(final long ownerId, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(long ownerId, String[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final long ownerId, final String[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(long ownerId, long[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final long ownerId, final long[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(long ownerId, String slug, long[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final long ownerId, final String slug, final long[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(String ownerScreenName, String slug, long[] userIds) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final String ownerScreenName, final String slug, final long[] userIds) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(long ownerId, String slug, String[] screenNames) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final long ownerId, final String slug, final String[] screenNames) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMembers(String ownerScreenName, String slug, String[] screenNames) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMembers(final String ownerScreenName, final String slug, final String[] screenNames) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMembers(String ownerScreenName, String slug, String[] screenNames) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMembers(final String ownerScreenName, final String slug, final String[] screenNames) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListMember(long ownerId, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListMember(final long ownerId, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMember(long ownerId, String slug, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMember(final long ownerId, final String slug, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserListMember(String ownerScreenName, String slug, long userId) throws TwitterException {
+    @Deprecated
+    public final UserList createUserListMember(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserList(long ownerId) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserList(final long ownerId) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserList(long ownerId, String slug) throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserList(final long ownerId, final String slug) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserList(String ownerScreenName, String slug)	throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserList(final String ownerScreenName, final String slug)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList destroyUserListSubscription(long id)	throws TwitterException {
+    @Deprecated
+    public final UserList destroyUserListSubscription(final long id)	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList updateUserList(long ownerId, String slug, String newListName, boolean isPublicList, String newDescription) throws TwitterException {
+    @Deprecated
+    public final UserList updateUserList(final long ownerId, final String slug, final String newListName, final boolean isPublicList, final String newDescription) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList updateUserList(String ownerScreenName, String slug, String newListName, boolean isPublicList, String newDescription) 	throws TwitterException {
+    @Deprecated
+    public final UserList updateUserList(final String ownerScreenName, final String slug, final String newListName, final boolean isPublicList, final String newDescription) 	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList createUserList(String listName, boolean isPublicList, String description) throws TwitterException {
+    @Deprecated
+    public final UserList createUserList(final String listName, final boolean isPublicList, final String description) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public UserList updateUserList(long id, String listName, boolean isPublicList, String description) throws TwitterException {
+    @Deprecated
+    public final UserList updateUserList(final long id, final String listName, final boolean isPublicList, final String description) throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
@@ -704,26 +703,26 @@ HelpResources
 	 */
 
 	@Override
-	@Deprecated
-	public TwitterAPIConfiguration getAPIConfiguration()	throws TwitterException {
+    @Deprecated
+    public final TwitterAPIConfiguration getAPIConfiguration()	throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public ResponseList<Language> getLanguages() throws TwitterException {
+    @Deprecated
+    public final ResponseList<Language> getLanguages() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public String getPrivacyPolicy() throws TwitterException {
+    @Deprecated
+    public final String getPrivacyPolicy() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 
 	@Override
-	@Deprecated
-	public String getTermsOfService() throws TwitterException {
+    @Deprecated
+    public final String getTermsOfService() throws TwitterException {
 		throw new TwitterException(UNSUPPORTED_METHOD);
 	}
 

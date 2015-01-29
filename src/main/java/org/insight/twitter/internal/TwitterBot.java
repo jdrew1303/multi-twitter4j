@@ -19,12 +19,12 @@ import twitter4j.conf.ConfigurationBuilder;
 public final class TwitterBot implements Comparable<TwitterBot>{
 	private final String config;
 	private final String ident;
-	
+
 	// 2 Instances make rate limit tracking easier,
 	// Rate Limit Listener on t4jConnection:
 	private final Twitter t4jConnection;
 	private final Twitter t4jRateLimitConnection;
-	
+
 	private final EndPoint endpoint;
 
 	// Mutable
@@ -39,14 +39,14 @@ public final class TwitterBot implements Comparable<TwitterBot>{
 		if (conf.equalsIgnoreCase("app")) {
 			// Need to tweak config before creating Application only Auth token:
 			ConfigurationBuilder cb = new ConfigurationBuilder().setApplicationOnlyAuthEnabled(true);
-			Configuration config = cb.build();
+			Configuration t4jConfig = cb.build();
 			
-			this.t4jConnection = new TwitterFactory(config).getInstance();
+			this.t4jConnection = new TwitterFactory(t4jConfig).getInstance();
 			this.t4jConnection.getOAuth2Token();
 			
-			this.t4jRateLimitConnection = new TwitterFactory(config).getInstance();
+			this.t4jRateLimitConnection = new TwitterFactory(t4jConfig).getInstance();
 			this.t4jRateLimitConnection.getOAuth2Token();
-			
+
 		}  else {
 		
 			this.t4jConnection = new TwitterFactory(conf).getInstance();
@@ -61,12 +61,12 @@ public final class TwitterBot implements Comparable<TwitterBot>{
 		// This "error" will happen during Queue if Bot is out of rate limit and getRateLimitStatus is called, but is quickly replaced by the proper rate limit
 		RateLimitStatusListener listener = new RateLimitStatusListener() {
 			@Override
-			public void onRateLimitStatus(RateLimitStatusEvent event) {
+			public void onRateLimitStatus(final RateLimitStatusEvent event) {
 				cachedRateLimit = event.getRateLimitStatus();
 				//System.out.println(ident + " Listener Set RateLimit: " + endpoint + "  " + event.getRateLimitStatus().toString());
 			}
 			@Override
-			public void onRateLimitReached(RateLimitStatusEvent event) {
+			public void onRateLimitReached(final RateLimitStatusEvent event) {
 				//System.out.println(ident + " RATE LIMIT REACHED!!: " + endpoint + "  " + event.getRateLimitStatus().toString());
 				cachedRateLimit = event.getRateLimitStatus();
 			}
@@ -96,7 +96,7 @@ public final class TwitterBot implements Comparable<TwitterBot>{
 			System.err.println(ident + " Error Refreshing Ratelimit for: " + endpoint + "  " + newRateLimitStatus.getRemaining());
 			e.printStackTrace();
 		}
-		
+
 		this.cachedRateLimit = newRateLimitStatus;
 	}
 
@@ -117,50 +117,48 @@ public final class TwitterBot implements Comparable<TwitterBot>{
 	}
 
 	@Override
-	public int compareTo(TwitterBot other) {
+	public int compareTo(final TwitterBot other) {
 		// Compare 2 Bots on RateLimits: by Rate Limit Remaining, and then by Reset Time:
 		// 1 Bot per access token, per endpoint:
-		int this_limit = this.getCachedRateLimitStatus().getRemaining();
-		int other_limit = other.getCachedRateLimitStatus().getRemaining();
-		int this_wait = this.getCachedRateLimitStatus().getSecondsUntilReset();
-		int other_wait = other.getCachedRateLimitStatus().getSecondsUntilReset();
+		int thisLimit = this.getCachedRateLimitStatus().getRemaining();
+		int otherLimit = other.getCachedRateLimitStatus().getRemaining();
+		int thisWait = this.getCachedRateLimitStatus().getSecondsUntilReset();
+		int otherWait = other.getCachedRateLimitStatus().getSecondsUntilReset();
 
 		// Highest limit first:
-		int limit = -1 * Integer.valueOf(this_limit).compareTo(other_limit);
+		int limit = -1 * Integer.valueOf(thisLimit).compareTo(otherLimit);
 		// If rate Limit is the same, one with lowest reset time is higher:
 		if (limit == 0) {
-			return (Integer.valueOf( this_wait ).compareTo( other_wait ));
+			return (Integer.valueOf( thisWait ).compareTo( otherWait ));
 		} else {
 			return limit; 
 		}
 	}
-	
+
 	@Override
-	public boolean equals(Object other){
+	public boolean equals(final Object other){
 		 if (other == null) return false;
 		 if (other == this) return true;
 		 if (!(other instanceof TwitterBot)) return false;
-		 
-		 TwitterBot otherBot = (TwitterBot)other;
-		 
+
+		 TwitterBot otherBot = (TwitterBot) other;
+
 		 if (this.ident.equalsIgnoreCase(otherBot.ident)) {
 			 return true;
 		 } else {
 			 return false;
 		 }
 	}
-	
+
 	@Override 
-	public int hashCode(){
+	public int hashCode() {
 		return this.ident.hashCode();
-	}	
-		
+	}
 	@Override
 	public String toString() {
 		return this.ident;
 	}
-	
-	public String getConfig() {
+	public String getConfig()  {
 		return this.config;
 	}
 
