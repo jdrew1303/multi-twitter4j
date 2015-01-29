@@ -13,20 +13,10 @@ import java.util.Map;
  * 
  */
 
-interface GetBotQueue {
-	public BotQueue getBotQueue();
-}
-
-interface ApplicationOnlySupport {
-	public boolean hasApplicationOnlySupport();
-}
-
-public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
-{
+public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 	/*
 	 * TimelinesResources
 	 */
-
 	STATUSES_USER_TIMELINE { 
 		@Override public String toString() { return "/statuses/user_timeline"; } 
 	},
@@ -34,7 +24,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/* 
 	 * TweetsResources
 	 */
-
 	STATUSES_RETWEETS { 
 		@Override public String toString() { return "/statuses/retweets/:id"; } 
 	},
@@ -51,7 +40,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * SearchResource
 	 */
-
 	SEARCH_TWEETS { 
 		@Override public String toString() { return "/search/tweets"; } 
 	},
@@ -59,7 +47,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * FriendsFollowersResources
 	 */
-
 	FRIENDS_LIST { 
 		@Override public String toString() { return "/friends/list"; } 
 	},
@@ -81,7 +68,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * UsersResources
 	 */
-
 	USERS_LOOKUP { 
 		@Override public String toString() { return "/users/lookup"; } 
 	},
@@ -104,7 +90,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * FavoritesResources
 	 */
-
 	FAVORITES_LIST { 
 		@Override public String toString() { return "/favorites/list"; }
 	}, 
@@ -112,7 +97,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * ListsResources
 	 */
-
 	LISTS_LIST { 
 		@Override public String toString() {	 return "/lists/list"; }	 
 	},
@@ -147,7 +131,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * PlacesGeoResources
 	 */
-
 	GEO_ID { 
 		@Override public String toString() { return "/geo/id"; } 
 		@Override public boolean hasApplicationOnlySupport() { return false;	}
@@ -168,7 +151,6 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	/*
 	 * TrendsResources
 	 */
-
 	TRENDS_PLACE { 
 		@Override public String toString() {	 return "/trends/place"; }
 	},
@@ -177,40 +159,36 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 	},
 	TRENDS_CLOSEST { 
 		@Override public String toString() { return "/trends/closest"; }
-	},
-
-	;
+	};
 
 	/*
 	 *  Define new Endpoints in the same way:
-	 *  
 	 *  RESOURCE_ENDPOINT { 
 	 *  	@Override public String toString() { return "/resource/endpoint"; }
 	 *  }
-	 *  
 	 */
 
 	// Make a queue for each endpoint:
-	private final static Map<String, BotQueue> botqueues = new HashMap<String, BotQueue>();
+	private static final Map<String, BotQueue> BOT_QUEUES = new HashMap<String, BotQueue>();
 
 	static {
 		for (EndPoint endpoint : EndPoint.values()) {
-			botqueues.put(endpoint.toString(), new BotQueue(endpoint));
+			BOT_QUEUES.put(endpoint.toString(), new BotQueue(endpoint));
 		}
 	}
 
 	@Override
 	public BotQueue getBotQueue() {
-		return botqueues.get(this.toString());
-	}	
+		return BOT_QUEUES.get(this.toString());
+	}
 
-	// Default - Most endpoints have application only calls.
+	// Default: Most endpoints have application only calls.
 	@Override
 	public boolean hasApplicationOnlySupport() {
 		return true;
 	}
 
-	public static EndPoint fromString(String resource) {
+	public static EndPoint fromString(final String resource) {
 		if (resource != null) {
 			for (EndPoint e : EndPoint.values()) {
 				if (resource.equalsIgnoreCase(e.toString())) {
@@ -220,5 +198,12 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport
 		}
 		return null;
 	}
+}
 
+interface GetBotQueue {
+	public BotQueue getBotQueue();
+}
+
+interface ApplicationOnlySupport {
+	public boolean hasApplicationOnlySupport();
 }
