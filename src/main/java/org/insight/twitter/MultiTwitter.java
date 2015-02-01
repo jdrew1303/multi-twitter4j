@@ -45,7 +45,7 @@ import twitter4j.UserList;
  * 
  * Should be straight forward to add unimplemented methods, if you really need them.
  */
-abstract class MultiTwitter extends LimitedTwitterResources {
+public class MultiTwitter extends LimitedTwitterResources {
 
     // Read configs from file
     private final Set<String> configuredBots;
