@@ -1,4 +1,4 @@
-package org.insight.twitter;
+package org.insight.twitter.tools;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -12,9 +12,7 @@ import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
 
 // TODO: A better one..
-public class OAuthSetupTool {
-    public OAuthSetupTool() {
-    }
+public class OAuthSetup {
 
     public boolean run(String[] args) {
 
@@ -85,15 +83,11 @@ public class OAuthSetupTool {
 
     }
 
-    // ---------------------------------------------------------
-    // Main
-    // ---------------------------------------------------------
-
     /**
      * Main method
      */
     public static void main(String[] args) {
-        OAuthSetupTool app = new OAuthSetupTool();
+        OAuthSetup app = new OAuthSetup();
         if (!app.run(args)) {
             System.exit(1);
         }

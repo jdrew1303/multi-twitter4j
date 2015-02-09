@@ -6,7 +6,6 @@
 	<version>1.0-SNAPSHOT</version>
 
 	<repositories>
-
 		<repository>
 			<id>twitter4j.org</id>
 			<name>twitter4j.org Repository</name>
@@ -18,32 +17,19 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-
-		<repository>
-			<id>scribe-java-mvn-repo</id>
-			<url>https://raw.github.com/fernandezpablo85/scribe-java/mvn-repo/</url>
-			<snapshots>
-				<enabled>true</enabled>
-				<updatePolicy>always</updatePolicy>
-			</snapshots>
-		</repository>
-
 	</repositories>
 
 	<dependencies>
-
 		<dependency>
 			<groupId>org.twitter4j</groupId>
 			<artifactId>twitter4j-core</artifactId>
 			<version>4.0.3-SNAPSHOT</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.twitter4j</groupId>
 			<artifactId>twitter4j-spdy-support</artifactId>
 			<version>4.0.3-SNAPSHOT</version>
 		</dependency>
-		
 	</dependencies>
 
 	<build>
@@ -62,5 +48,4 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-
 </project>
