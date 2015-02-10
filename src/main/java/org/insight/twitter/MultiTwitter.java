@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 
 import org.insight.twitter.internal.EndPoint;
 import org.insight.twitter.internal.InternalRateLimitStatus;
-import org.insight.twitter.internal.LimitedTwitterResources;
+import org.insight.twitter.internal.TwitterResources;
 import org.insight.twitter.internal.TwitterBot;
 
 import twitter4j.GeoLocation;
@@ -37,6 +37,7 @@ import twitter4j.Status;
 import twitter4j.Trends;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
+import twitter4j.TwitterResponse;
 import twitter4j.User;
 import twitter4j.UserList;
 
@@ -45,7 +46,7 @@ import twitter4j.UserList;
  * 
  * Should be straight forward to add unimplemented methods, if you really need them.
  */
-public class MultiTwitter extends LimitedTwitterResources {
+public class MultiTwitter extends TwitterResources {
 
     // Read configs from file
     private final Set<String> configuredBots;
@@ -70,53 +71,6 @@ public class MultiTwitter extends LimitedTwitterResources {
     /*
      * -------------------------- Utility Methods: --------------------------
      */
-
-    /*
-     * HelpResources
-     */
-
-    @Override
-    public final Map<String, RateLimitStatus> getRateLimitStatus(
-            final String... resources) throws TwitterException {
-        EndPoint[] endpoints = new EndPoint[resources.length];
-        for (int i = 0; i < resources.length; i++) {
-            endpoints[i] = EndPoint.fromString(resources[i]);
-        }
-        return getRateLimitStatus(endpoints);
-    }
-
-    @Override
-    public final Map<String, RateLimitStatus> getRateLimitStatus()
-            throws TwitterException {
-        return getRateLimitStatus(EndPoint.values());
-    }
-
-    /*
-     * Get combined Rate Limit for an endpoint (or several)
-     */
-    final Map<String, RateLimitStatus> getRateLimitStatus(
-            final EndPoint[] endpoints) {
-        Map<String, RateLimitStatus> rateLimits = new HashMap<>();
-        for (EndPoint target : endpoints) {
-            rateLimits.putAll(getRateLimitStatus(target));
-        }
-        return rateLimits;
-    }
-
-    /*
-     * Get Combined Rate Limit from all available bots
-     */
-    final Map<String, RateLimitStatus> getRateLimitStatus(
-            final EndPoint endpoint) {
-        Map<String, RateLimitStatus> rateLimit = new HashMap<>();
-        InternalRateLimitStatus rl = new InternalRateLimitStatus();
-        Set<TwitterBot> allActiveBots = endpoint.getBotQueue().getLoadedBots();
-        for (TwitterBot bot : allActiveBots) {
-            rl = rl.mergeWith(bot.getCachedRateLimitStatus());
-        }
-        rateLimit.put(endpoint.toString(), rl);
-        return rateLimit;
-    }
 
     /*
      * Read config file, extract all the access tokens.
@@ -186,8 +140,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      * with something else that manages bots & calls.
      */
     public abstract class TwitterCommand<T> {
-        public final T getResponse(final EndPoint endpoint)
-                throws TwitterException {
+        public T getResponse(final EndPoint endpoint) throws TwitterException {
             T result;
             int retryLimit = configuredBots.size();
             while (true) {
@@ -233,10 +186,73 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     /*
+     * Get JSON - Only works if calling from the same thread, and immediately
+     * after last request!
+     */
+    public static String getJSON(TwitterResponse r) {
+        return TwitterObjectFactory.getRawJSON(r);
+    }
+
+    public static List<String> getJSON(List<? extends TwitterResponse> l) {
+        List<String> objects = new ArrayList<>();
+        for (TwitterResponse r : l) {
+            objects.add(TwitterObjectFactory.getRawJSON(r));
+        }
+        return objects;
+    }
+
+    /*
      * =======================================================================
      * Twitter4J Wrapper Implementations:
      * =======================================================================
      */
+
+    /*
+     * HelpResources
+     */
+
+    @Override
+    public Map<String, RateLimitStatus> getRateLimitStatus(
+            final String... resources) throws TwitterException {
+        EndPoint[] endpoints = new EndPoint[resources.length];
+        for (int i = 0; i < resources.length; i++) {
+            endpoints[i] = EndPoint.fromString(resources[i]);
+        }
+        return getRateLimitStatus(endpoints);
+    }
+
+    @Override
+    public Map<String, RateLimitStatus> getRateLimitStatus()
+            throws TwitterException {
+        return getRateLimitStatus(EndPoint.values());
+    }
+
+    /*
+     * Get combined Rate Limit for an endpoint (or several)
+     */
+    public Map<String, RateLimitStatus> getRateLimitStatus(
+            final EndPoint[] endpoints) {
+        Map<String, RateLimitStatus> rateLimits = new HashMap<>();
+        for (EndPoint target : endpoints) {
+            rateLimits.putAll(getRateLimitStatus(target));
+        }
+        return rateLimits;
+    }
+
+    /*
+     * Get Combined Rate Limit from all available bots
+     */
+    public Map<String, RateLimitStatus> getRateLimitStatus(
+            final EndPoint endpoint) {
+        Map<String, RateLimitStatus> rateLimit = new HashMap<>();
+        InternalRateLimitStatus rl = new InternalRateLimitStatus();
+        Set<TwitterBot> allActiveBots = endpoint.getBotQueue().getLoadedBots();
+        for (TwitterBot bot : allActiveBots) {
+            rl = rl.mergeWith(bot.getCachedRateLimitStatus());
+        }
+        rateLimit.put(endpoint.toString(), rl);
+        return rateLimit;
+    }
 
     /*
      * ========================================================================
@@ -250,10 +266,10 @@ public class MultiTwitter extends LimitedTwitterResources {
      * Timelines
      */
 
-    public final List<String> getUserTimelineToDate(final long userId,
+    public List<Status> getUserTimelineToDate(final long userId,
             final Date oldest_created_at) {
 
-        List<String> timeline = new ArrayList<>();
+        List<Status> timeline = new ArrayList<>();
 
         Paging paging = new Paging();
         paging.count(200);
@@ -277,7 +293,7 @@ public class MultiTwitter extends LimitedTwitterResources {
                         continue;
                     }
 
-                    timeline.add(TwitterObjectFactory.getRawJSON(s));
+                    timeline.add(s);
                 }
 
                 System.out.println(userId + " Fetched: " + lowestID.size()
@@ -306,10 +322,10 @@ public class MultiTwitter extends LimitedTwitterResources {
         return timeline;
     }
 
-    public final List<String> getUpdateUserTimeline(final long userId,
+    public List<Status> getUpdateUserTimeline(final long userId,
             final long sinceId) {
 
-        List<String> timeline = new ArrayList<>();
+        List<Status> timeline = new ArrayList<>();
 
         Paging paging = new Paging();
         paging.count(200);
@@ -325,8 +341,7 @@ public class MultiTwitter extends LimitedTwitterResources {
                 Collection<Long> lowestID = new ArrayList<>();
                 for (Status s : page) {
                     lowestID.add(s.getId());
-
-                    timeline.add(TwitterObjectFactory.getRawJSON(s));
+                    timeline.add(s);
                 }
 
                 System.out.println(userId + " Fetched: " + lowestID.size()
@@ -391,7 +406,7 @@ public class MultiTwitter extends LimitedTwitterResources {
 
     // TODO
 
-    public final List<User> getAllListMembers(final long listId) {
+    public List<User> getAllListMembers(final long listId) {
         List<User> members = new ArrayList<>();
         long cursor = -1;
         try {
@@ -413,13 +428,13 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final ResponseList<Status> getUserTimeline(final String screenName)
+    public ResponseList<Status> getUserTimeline(final String screenName)
             throws TwitterException {
         return getUserTimeline(screenName, new Paging());
     }
 
     @Override
-    public final ResponseList<Status> getUserTimeline(final String screenName,
+    public ResponseList<Status> getUserTimeline(final String screenName,
             final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -432,13 +447,13 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> getUserTimeline(final long userId)
+    public ResponseList<Status> getUserTimeline(final long userId)
             throws TwitterException {
         return getUserTimeline(userId, new Paging());
     }
 
     @Override
-    public final ResponseList<Status> getUserTimeline(final long userId,
+    public ResponseList<Status> getUserTimeline(final long userId,
             final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -455,7 +470,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final ResponseList<Status> getRetweets(final long statusId)
+    public ResponseList<Status> getRetweets(final long statusId)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -467,13 +482,13 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final IDs getRetweeterIds(final long statusId, final long cursor)
+    public IDs getRetweeterIds(final long statusId, final long cursor)
             throws TwitterException {
         return getRetweeterIds(statusId, 100, cursor);
     }
 
     @Override
-    public final IDs getRetweeterIds(final long statusId, final int count,
+    public IDs getRetweeterIds(final long statusId, final int count,
             final long cursor) throws TwitterException {
         return (new TwitterCommand<IDs>() {
             @Override
@@ -486,7 +501,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final Status showStatus(final long id) throws TwitterException {
+    public Status showStatus(final long id) throws TwitterException {
         return (new TwitterCommand<Status>() {
             @Override
             public Status fetchResponse(final TwitterBot bot)
@@ -497,7 +512,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> lookup(final long[] ids)
+    public ResponseList<Status> lookup(final long[] ids)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -513,7 +528,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final QueryResult search(final Query query) throws TwitterException {
+    public QueryResult search(final Query query) throws TwitterException {
         return (new TwitterCommand<QueryResult>() {
             @Override
             public QueryResult fetchResponse(final TwitterBot bot)
@@ -528,13 +543,13 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final IDs getFriendsIDs(final long userId, final long cursor)
+    public IDs getFriendsIDs(final long userId, final long cursor)
             throws TwitterException {
         return getFriendsIDs(userId, cursor, 5000);
     }
 
     @Override
-    public final IDs getFriendsIDs(final long userId, final long cursor,
+    public IDs getFriendsIDs(final long userId, final long cursor,
             final int count) throws TwitterException {
         return (new TwitterCommand<IDs>() {
             @Override
@@ -547,13 +562,13 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final IDs getFriendsIDs(final String screenName, final long cursor)
+    public IDs getFriendsIDs(final String screenName, final long cursor)
             throws TwitterException {
         return getFriendsIDs(screenName, cursor, 5000);
     }
 
     @Override
-    public final IDs getFriendsIDs(final String screenName, final long cursor,
+    public IDs getFriendsIDs(final String screenName, final long cursor,
             final int count) throws TwitterException {
         return (new TwitterCommand<IDs>() {
             @Override
@@ -566,13 +581,13 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final IDs getFollowersIDs(final long userId, final long cursor)
+    public IDs getFollowersIDs(final long userId, final long cursor)
             throws TwitterException {
         return getFollowersIDs(userId, cursor, 5000);
     }
 
     @Override
-    public final IDs getFollowersIDs(final long userId, final long cursor,
+    public IDs getFollowersIDs(final long userId, final long cursor,
             final int count) throws TwitterException {
         return (new TwitterCommand<IDs>() {
             @Override
@@ -585,14 +600,14 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final IDs getFollowersIDs(final String screenName, final long cursor)
+    public IDs getFollowersIDs(final String screenName, final long cursor)
             throws TwitterException {
         return getFollowersIDs(screenName, cursor, 5000);
     }
 
     @Override
-    public final IDs getFollowersIDs(final String screenName,
-            final long cursor, final int count) throws TwitterException {
+    public IDs getFollowersIDs(final String screenName, final long cursor,
+            final int count) throws TwitterException {
         return (new TwitterCommand<IDs>() {
             @Override
             public IDs fetchResponse(final TwitterBot bot)
@@ -604,8 +619,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final Relationship showFriendship(final long sourceId,
-            final long targetId) throws TwitterException {
+    public Relationship showFriendship(final long sourceId, final long targetId)
+            throws TwitterException {
         return (new TwitterCommand<Relationship>() {
             @Override
             public Relationship fetchResponse(final TwitterBot bot)
@@ -617,7 +632,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final Relationship showFriendship(final String sourceScreenName,
+    public Relationship showFriendship(final String sourceScreenName,
             final String targetScreenName) throws TwitterException {
         return (new TwitterCommand<Relationship>() {
             @Override
@@ -630,19 +645,19 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(final long userId,
+    public PagableResponseList<User> getFriendsList(final long userId,
             final long cursor) throws TwitterException {
         return getFriendsList(userId, cursor, 200, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(final long userId,
+    public PagableResponseList<User> getFriendsList(final long userId,
             final long cursor, final int count) throws TwitterException {
         return getFriendsList(userId, cursor, 200, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(final long userId,
+    public PagableResponseList<User> getFriendsList(final long userId,
             final long cursor, final int count, final boolean skipStatus,
             final boolean includeUserEntities) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
@@ -659,23 +674,21 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(
-            final String screenName, final long cursor) throws TwitterException {
+    public PagableResponseList<User> getFriendsList(final String screenName,
+            final long cursor) throws TwitterException {
         return getFriendsList(screenName, cursor, 200, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(
-            final String screenName, final long cursor, final int count)
-            throws TwitterException {
+    public PagableResponseList<User> getFriendsList(final String screenName,
+            final long cursor, final int count) throws TwitterException {
         return getFriendsList(screenName, cursor, count, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFriendsList(
-            final String screenName, final long cursor, final int count,
-            final boolean skipStatus, final boolean includeUserEntities)
-            throws TwitterException {
+    public PagableResponseList<User> getFriendsList(final String screenName,
+            final long cursor, final int count, final boolean skipStatus,
+            final boolean includeUserEntities) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -690,19 +703,19 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(final long userId,
+    public PagableResponseList<User> getFollowersList(final long userId,
             final long cursor) throws TwitterException {
         return getFollowersList(userId, cursor, 200, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(final long userId,
+    public PagableResponseList<User> getFollowersList(final long userId,
             final long cursor, final int count) throws TwitterException {
         return getFollowersList(userId, cursor, count, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(final long userId,
+    public PagableResponseList<User> getFollowersList(final long userId,
             final long cursor, final int count, final boolean skipStatus,
             final boolean includeUserEntities) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
@@ -719,23 +732,21 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(
-            final String screenName, final long cursor) throws TwitterException {
+    public PagableResponseList<User> getFollowersList(final String screenName,
+            final long cursor) throws TwitterException {
         return getFollowersList(screenName, cursor, 200, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(
-            final String screenName, final long cursor, final int count)
-            throws TwitterException {
+    public PagableResponseList<User> getFollowersList(final String screenName,
+            final long cursor, final int count) throws TwitterException {
         return getFollowersList(screenName, cursor, count, false, true);
     }
 
     @Override
-    public final PagableResponseList<User> getFollowersList(
-            final String screenName, final long cursor, final int count,
-            final boolean skipStatus, final boolean includeUserEntities)
-            throws TwitterException {
+    public PagableResponseList<User> getFollowersList(final String screenName,
+            final long cursor, final int count, final boolean skipStatus,
+            final boolean includeUserEntities) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -754,7 +765,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final ResponseList<User> lookupUsers(final long[] ids)
+    public ResponseList<User> lookupUsers(final long[] ids)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -766,7 +777,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> lookupUsers(final String[] screenNames)
+    public ResponseList<User> lookupUsers(final String[] screenNames)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -778,7 +789,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUser(final long userId) throws TwitterException {
+    public User showUser(final long userId) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -789,7 +800,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUser(final String screenName) throws TwitterException {
+    public User showUser(final String screenName) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -800,8 +811,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> searchUsers(final String query,
-            final int page) throws TwitterException {
+    public ResponseList<User> searchUsers(final String query, final int page)
+            throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
             public ResponseList<User> fetchResponse(final TwitterBot bot)
@@ -812,7 +823,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> getContributees(final long userId)
+    public ResponseList<User> getContributees(final long userId)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -824,7 +835,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> getContributees(final String screenName)
+    public ResponseList<User> getContributees(final String screenName)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -836,7 +847,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> getContributors(final String screenName)
+    public ResponseList<User> getContributors(final String screenName)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -849,7 +860,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<User> getContributors(final long userId)
+    public ResponseList<User> getContributors(final long userId)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<User>>() {
             @Override
@@ -865,13 +876,13 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final ResponseList<Status> getFavorites(final long userId)
+    public ResponseList<Status> getFavorites(final long userId)
             throws TwitterException {
         return getFavorites(userId, new Paging());
     }
 
     @Override
-    public final ResponseList<Status> getFavorites(final long userId,
+    public ResponseList<Status> getFavorites(final long userId,
             final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -884,13 +895,13 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> getFavorites(final String screenName)
+    public ResponseList<Status> getFavorites(final String screenName)
             throws TwitterException {
         return getFavorites(screenName, new Paging());
     }
 
     @Override
-    public final ResponseList<Status> getFavorites(final String screenName,
+    public ResponseList<Status> getFavorites(final String screenName,
             final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -907,8 +918,8 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final ResponseList<UserList> getUserLists(
-            final String listOwnerScreenName) throws TwitterException {
+    public ResponseList<UserList> getUserLists(final String listOwnerScreenName)
+            throws TwitterException {
         return (new TwitterCommand<ResponseList<UserList>>() {
             @Override
             public ResponseList<UserList> fetchResponse(final TwitterBot bot)
@@ -920,7 +931,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<UserList> getUserLists(final long listOwnerUserId)
+    public ResponseList<UserList> getUserLists(final long listOwnerUserId)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<UserList>>() {
             @Override
@@ -932,7 +943,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> getUserListStatuses(final long listId,
+    public ResponseList<Status> getUserListStatuses(final long listId,
             final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -945,7 +956,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> getUserListStatuses(final long ownerId,
+    public ResponseList<Status> getUserListStatuses(final long ownerId,
             final String slug, final Paging paging) throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
             @Override
@@ -958,7 +969,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Status> getUserListStatuses(
+    public ResponseList<Status> getUserListStatuses(
             final String ownerScreenName, final String slug, final Paging paging)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<Status>>() {
@@ -972,7 +983,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<UserList> getUserListMemberships(
+    public PagableResponseList<UserList> getUserListMemberships(
             final long listMemberId, final long cursor) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<UserList>>() {
             @Override
@@ -985,7 +996,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<UserList> getUserListMemberships(
+    public PagableResponseList<UserList> getUserListMemberships(
             final String listMemberScreenName, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<UserList>>() {
@@ -999,8 +1010,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListSubscribers(
-            final long listId, final long cursor) throws TwitterException {
+    public PagableResponseList<User> getUserListSubscribers(final long listId,
+            final long cursor) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -1012,9 +1023,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListSubscribers(
-            final long ownerId, final String slug, final long cursor)
-            throws TwitterException {
+    public PagableResponseList<User> getUserListSubscribers(final long ownerId,
+            final String slug, final long cursor) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -1026,7 +1036,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListSubscribers(
+    public PagableResponseList<User> getUserListSubscribers(
             final String ownerScreenName, final String slug, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
@@ -1040,8 +1050,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListSubscription(final long listId,
-            final long userId) throws TwitterException {
+    public User showUserListSubscription(final long listId, final long userId)
+            throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -1053,8 +1063,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListSubscription(final long ownerId,
-            final String slug, final long userId) throws TwitterException {
+    public User showUserListSubscription(final long ownerId, final String slug,
+            final long userId) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -1066,7 +1076,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListSubscription(final String ownerScreenName,
+    public User showUserListSubscription(final String ownerScreenName,
             final String slug, final long userId) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
@@ -1081,8 +1091,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListMembership(final long listId,
-            final long userId) throws TwitterException {
+    public User showUserListMembership(final long listId, final long userId)
+            throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -1094,8 +1104,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListMembership(final long ownerId,
-            final String slug, final long userId) throws TwitterException {
+    public User showUserListMembership(final long ownerId, final String slug,
+            final long userId) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
             public User fetchResponse(final TwitterBot bot)
@@ -1107,7 +1117,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final User showUserListMembership(final String ownerScreenName,
+    public User showUserListMembership(final String ownerScreenName,
             final String slug, final long userId) throws TwitterException {
         return (new TwitterCommand<User>() {
             @Override
@@ -1120,8 +1130,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListMembers(
-            final long listId, final long cursor) throws TwitterException {
+    public PagableResponseList<User> getUserListMembers(final long listId,
+            final long cursor) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -1133,9 +1143,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListMembers(
-            final long ownerId, final String slug, final long cursor)
-            throws TwitterException {
+    public PagableResponseList<User> getUserListMembers(final long ownerId,
+            final String slug, final long cursor) throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
             @Override
             public PagableResponseList<User> fetchResponse(final TwitterBot bot)
@@ -1147,7 +1156,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<User> getUserListMembers(
+    public PagableResponseList<User> getUserListMembers(
             final String ownerScreenName, final String slug, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<User>>() {
@@ -1161,8 +1170,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final UserList showUserList(final long listId)
-            throws TwitterException {
+    public UserList showUserList(final long listId) throws TwitterException {
         return (new TwitterCommand<UserList>() {
             @Override
             public UserList fetchResponse(final TwitterBot bot)
@@ -1173,7 +1181,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final UserList showUserList(final long ownerId, final String slug)
+    public UserList showUserList(final long ownerId, final String slug)
             throws TwitterException {
         return (new TwitterCommand<UserList>() {
             @Override
@@ -1185,8 +1193,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final UserList showUserList(final String ownerScreenName,
-            final String slug) throws TwitterException {
+    public UserList showUserList(final String ownerScreenName, final String slug)
+            throws TwitterException {
         return (new TwitterCommand<UserList>() {
             @Override
             public UserList fetchResponse(final TwitterBot bot)
@@ -1198,7 +1206,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<UserList> getUserListSubscriptions(
+    public PagableResponseList<UserList> getUserListSubscriptions(
             final String listOwnerScreenName, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<UserList>>() {
@@ -1212,7 +1220,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<UserList> getUserListsOwnerships(
+    public PagableResponseList<UserList> getUserListsOwnerships(
             final String listOwnerScreenName, final int count, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<UserList>>() {
@@ -1229,7 +1237,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final PagableResponseList<UserList> getUserListsOwnerships(
+    public PagableResponseList<UserList> getUserListsOwnerships(
             final long listOwnerId, final int count, final long cursor)
             throws TwitterException {
         return (new TwitterCommand<PagableResponseList<UserList>>() {
@@ -1247,8 +1255,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final Place getGeoDetails(final String placeId)
-            throws TwitterException {
+    public Place getGeoDetails(final String placeId) throws TwitterException {
         return (new TwitterCommand<Place>() {
             @Override
             public Place fetchResponse(final TwitterBot bot)
@@ -1259,7 +1266,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Place> reverseGeoCode(final GeoQuery query)
+    public ResponseList<Place> reverseGeoCode(final GeoQuery query)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<Place>>() {
             @Override
@@ -1271,7 +1278,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Place> searchPlaces(final GeoQuery query)
+    public ResponseList<Place> searchPlaces(final GeoQuery query)
             throws TwitterException {
         return (new TwitterCommand<ResponseList<Place>>() {
             @Override
@@ -1283,10 +1290,9 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Place> getSimilarPlaces(
-            final GeoLocation location, final String name,
-            final String containedWithin, final String streetAddress)
-            throws TwitterException {
+    public ResponseList<Place> getSimilarPlaces(final GeoLocation location,
+            final String name, final String containedWithin,
+            final String streetAddress) throws TwitterException {
         return (new TwitterCommand<ResponseList<Place>>() {
             @Override
             public ResponseList<Place> fetchResponse(final TwitterBot bot)
@@ -1305,7 +1311,7 @@ public class MultiTwitter extends LimitedTwitterResources {
      */
 
     @Override
-    public final Trends getPlaceTrends(final int woeid) throws TwitterException {
+    public Trends getPlaceTrends(final int woeid) throws TwitterException {
         return (new TwitterCommand<Trends>() {
             @Override
             public Trends fetchResponse(final TwitterBot bot)
@@ -1317,8 +1323,7 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Location> getAvailableTrends()
-            throws TwitterException {
+    public ResponseList<Location> getAvailableTrends() throws TwitterException {
         return (new TwitterCommand<ResponseList<Location>>() {
             @Override
             public ResponseList<Location> fetchResponse(final TwitterBot bot)
@@ -1329,8 +1334,8 @@ public class MultiTwitter extends LimitedTwitterResources {
     }
 
     @Override
-    public final ResponseList<Location> getClosestTrends(
-            final GeoLocation location) throws TwitterException {
+    public ResponseList<Location> getClosestTrends(final GeoLocation location)
+            throws TwitterException {
         return (new TwitterCommand<ResponseList<Location>>() {
             @Override
             public ResponseList<Location> fetchResponse(final TwitterBot bot)

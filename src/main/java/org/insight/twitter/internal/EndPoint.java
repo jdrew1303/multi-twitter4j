@@ -9,7 +9,7 @@ import java.util.Map;
  * As far as Twitter is concerned, there is 1 Ratelimit per endpoint, per access token.
  * 
  * To add unimplemented endpoints, add a ENDPOINT_NAME and override .toString() with the Twitter API endpoint name.
- * Also Edit MultiTwitter to make the calls, and remove deprecation notices / exceptions LimitedTwitterResources
+ * Also Edit MultiTwitter to make the calls, and remove deprecation notices / exceptions TwitterResources
  * 
  */
 
