@@ -6,9 +6,6 @@ import java.util.Map;
 /*
  * Container for different Endpoint Names, and priority queues. Uses Enum Singleton pattern because we only want 1 global instance of each endpoint+bot. As far
  * as Twitter is concerned, there is 1 Ratelimit per endpoint, per access token.
- * 
- * To add unimplemented endpoints, add a ENDPOINT_NAME and override .toString() with the Twitter API endpoint name. Also Edit MultiTwitter to make the calls, and
- * remove deprecation notices / exceptions TwitterResources
  */
 
 public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {

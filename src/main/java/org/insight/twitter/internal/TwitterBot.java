@@ -14,16 +14,12 @@ import twitter4j.conf.ConfigurationBuilder;
 /*
  * Wrapper for Twitter That keeps track of Rate Limits: One Instance per endpoint, per access token. Don't use this directly, Use MultiTwitter!
  */
-
 public final class TwitterBot implements Comparable<TwitterBot> {
   private final String config;
   private final String ident;
-
-  // 2 Instances make rate limit tracking easier,
-  // Rate Limit Listener on t4jConnection:
+  // 2 Instances make rate limit tracking easier, Rate Limit Listener on t4jConnection:
   private final Twitter t4jConnection;
   private final Twitter t4jRateLimitConnection;
-
   private final EndPoint endpoint;
 
   // Mutable
@@ -33,74 +29,55 @@ public final class TwitterBot implements Comparable<TwitterBot> {
   public TwitterBot(final String conf, final EndPoint endpt) throws TwitterException {
     this.config = conf;
     this.endpoint = endpt;
-    this.ident = String.format("%s['%s']", conf, endpt.toString());
+    this.ident = String.format("{\"config\":\"%s\", \"endPoint\":\"%s\"}", conf, endpt.toString());
 
     if (conf.equalsIgnoreCase("app")) {
       // Need to tweak config before creating Application only Auth token:
       ConfigurationBuilder cb = new ConfigurationBuilder().setApplicationOnlyAuthEnabled(true);
       Configuration t4jConfig = cb.build();
-
       this.t4jConnection = new TwitterFactory(t4jConfig).getInstance();
       this.t4jConnection.getOAuth2Token();
-
       this.t4jRateLimitConnection = new TwitterFactory(t4jConfig).getInstance();
       this.t4jRateLimitConnection.getOAuth2Token();
-
     } else {
-
       this.t4jConnection = new TwitterFactory(conf).getInstance();
       this.t4jRateLimitConnection = new TwitterFactory(conf).getInstance();
-
     }
 
     // Try to set an initial rate limit
     refreshRateLimit();
 
-    // Listener reacts to any rate limit status... so to avoid adding rate
-    // limit status of getRateLimitStatus, add listener after requesting
-    // initial ratelimit:
-    // This "error" will happen during Queue if Bot is out of rate limit and
-    // getRateLimitStatus is called, but is quickly replaced by the proper
-    // rate limit
     RateLimitStatusListener listener = new RateLimitStatusListener() {
       @Override
       public void onRateLimitStatus(final RateLimitStatusEvent event) {
         cachedRateLimit = event.getRateLimitStatus();
-        // System.out.println(ident + " Listener Set RateLimit: " +
-        // endpoint + "  " + event.getRateLimitStatus().toString());
       }
 
       @Override
       public void onRateLimitReached(final RateLimitStatusEvent event) {
-        // System.out.println(ident + " RATE LIMIT REACHED!!: " +
-        // endpoint + "  " + event.getRateLimitStatus().toString());
         cachedRateLimit = event.getRateLimitStatus();
       }
     };
     this.t4jConnection.addRateLimitStatusListener(listener);
 
     // Add this TwitterBot to the right Endpoint Queue:
-    // System.err.println("Created Bot: " + ident);
     endpoint.getBotQueue().offer(this);
   }
 
   public void refreshRateLimit() {
-    RateLimitStatus newRateLimitStatus;
+    RateLimitStatus newRateLimitStatus = new InternalRateLimitStatus();
+
     try {
       // Make a smaller request for the endpoint family only:
       String endpointFamily = endpoint.toString().split("/")[1];
       Map<String, RateLimitStatus> twitterRateLimits = this.t4jRateLimitConnection.getRateLimitStatus(endpointFamily);
-      // If the rate limit is defined by t4jConnection, use that - if not,
-      // create our own dummy ratelimit object:
+      // If the rate limit is defined by t4jConnection, use that - if not, create our own dummy ratelimit object:
       if (twitterRateLimits.containsKey(endpoint.toString())) {
         newRateLimitStatus = twitterRateLimits.get(endpoint.toString());
       } else {
         newRateLimitStatus = new InternalRateLimitStatus().withRemaining(1);
       }
     } catch (TwitterException e) {
-      // Failed to retrieve rate limit, create a fake rate limit with 0
-      // remaining:
-      newRateLimitStatus = new InternalRateLimitStatus();
       System.err.println(ident + " Error Refreshing Ratelimit for: " + endpoint + "  " + newRateLimitStatus.getRemaining());
       e.printStackTrace();
     }
@@ -113,10 +90,8 @@ public final class TwitterBot implements Comparable<TwitterBot> {
     return this.cachedRateLimit;
   }
 
-  // Don't use this instance to request anything other than the designated
-  // Endpoint.
-  // Only Use NewMultiTwitter!
-  // Rate limit Listener will fail if you do so!
+  // Don't use this instance to request anything other than the designated Endpoint.
+  // Only Use NewMultiTwitter! Rate limit Listener will fail otherwise:
   public final Twitter getTwitter() {
     return this.t4jConnection;
   }
@@ -127,11 +102,11 @@ public final class TwitterBot implements Comparable<TwitterBot> {
 
   @Override
   public int compareTo(TwitterBot other) {
-    // Compare 2 Bots on RateLimits: by Rate Limit Remaining, and then by
-    // Reset Time:
+    // Compare 2 Bots on RateLimits: by Rate Limit Remaining, and then by Reset Time:
     // 1 Bot per access token, per endpoint:
     int thisLimit = this.getCachedRateLimitStatus().getRemaining();
     int otherLimit = other.getCachedRateLimitStatus().getRemaining();
+
     int thisWait = this.getCachedRateLimitStatus().getSecondsUntilReset();
     int otherWait = other.getCachedRateLimitStatus().getSecondsUntilReset();
 
@@ -156,10 +131,7 @@ public final class TwitterBot implements Comparable<TwitterBot> {
     if (other == this) {
       return true;
     }
-
-    TwitterBot otherBot = (TwitterBot) other;
-
-    return this.ident.equalsIgnoreCase(otherBot.ident);
+    return this.ident.equalsIgnoreCase(((TwitterBot) other).ident);
   }
 
   @Override

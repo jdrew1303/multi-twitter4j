@@ -14,22 +14,19 @@ import twitter4j.TwitterException;
 
 /*
  * An extended PriorityBlockingQueue for Twitter bots - manages Queue of bots, puts them to sleep if needed. At most, 1 BotQueue per endpoint! - Slower, but more
- * robust and reliable with Twitter
+ * robust and reliable with Twitter.
  */
-
 
 @SuppressWarnings("serial")
 public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
   // Scheduled service to revive sleeping bots
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
   private final Set<TwitterBot> loadedBots = Collections.newSetFromMap(new ConcurrentHashMap<TwitterBot, Boolean>());
-
   private final EndPoint endpoint;
 
-  public BotQueue(final EndPoint endpt) {
+  public BotQueue(final EndPoint endpoint) {
     super(1);
-    this.endpoint = endpt;
+    this.endpoint = endpoint;
   }
 
   @Override
@@ -37,11 +34,8 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
     // Prevent Duplicates During Reloads:
     if (!super.contains(e)) {
       loadedBots.add(e);
-      // System.err.println("q Adding Bot to Queue!! " + endpoint + " " +
-      // e );
       return super.offer(e);
     } else {
-      // System.err.println("q Bot EXISTS !! " + endpoint + " " + e );
       return false;
     }
   }
@@ -56,7 +50,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
         System.err.println(String.format("** WARNING: Rate Limits for %s exhaused! Wait up to 15 min for next rate limit window!", endpoint));
         return null;
       }
-    } while (checkBot(bot));
+    } while (checkNext(bot));
 
     return bot;
   }
@@ -74,41 +68,33 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-    } while (checkBot(bot));
+    } while (checkNext(bot));
 
     return bot;
   }
 
-  private boolean checkBot(final TwitterBot bot) {
+  private boolean checkNext(final TwitterBot bot) {
     if (bot == null) {
       return true;
     }
+
     int remaining = bot.getCachedRateLimitStatus().getRemaining();
-    // Double check here, in case a bot was on 0, and there were no requests
-    // for >15 min.
-    long now = new Date().getTime();
-    long rateLimitAge = (bot.getCachedRateLimitStatus().getResetTimeInSeconds() * 1000) - now;
-    if ((remaining < 1) && (rateLimitAge > 0)) {
+    // Double check here, in case a bot is on 0, and ResetTime has passed:
+    long rateLimitAge = (bot.getCachedRateLimitStatus().getResetTimeInSeconds() * 1000) - (new Date().getTime());
+    if ((remaining < 1) && (rateLimitAge < 0)) {
       bot.refreshRateLimit();
       remaining = bot.getCachedRateLimitStatus().getRemaining();
     }
-    // If the head of the queue is 0, it means we've run out of bots. Time
-    // to sleep:
     if (remaining < 1) {
-      // System.out.println("Queue refresh in a while for .. "+
-      // bot.toString());
+      // Wait 10 seconds if reset time is 0 or negative.
+      // N seconds + 5 because reset times can be flaky.
       long howLong = bot.getCachedRateLimitStatus().getSecondsUntilReset();
-      if (howLong < 1) {
-        // Wait 10 seconds if reset time is 0 or negative.
-        howLong = 10;
-      } else {
-        // N seconds + 5 because reset times can be flaky.
-        howLong += 5;
-      }
+      howLong = (howLong < 1) ? howLong = 10 : howLong + 5;
       scheduler.schedule(new DelayedRateLimitRefresh(bot, this), howLong, TimeUnit.SECONDS);
       System.out.println("Put " + bot.toString() + "  to sleep for " + howLong);
       return true;
     } else {
+      // Bot is good, no need to continue checking:
       return false;
     }
   }
@@ -132,9 +118,9 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
       configureBots.add("app");
     }
 
-    // If there are not bots loaded yet:
+    // If there are no bots loaded yet:
     if (loadedBots.size() == 0) {
-      System.out.println(endpoint + " 0 Bots loaded, reloading: " + configureBots.size() + " from memory ");
+      System.out.println(endpoint + " 0 Bots loaded, reloading: " + configureBots.size() + " from conf ");
     } else {
       // If bots are loaded, check for new additions:
       if (loadedBots.size() == configureBots.size()) {
@@ -153,7 +139,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
       TwitterBot newBot;
       try {
         newBot = new TwitterBot(conf, endpoint);
-        System.err.println("Created :" + newBot + " " + newBot.getCachedRateLimitStatus() + "");
+        System.out.println("Created :" + newBot + " " + newBot.getCachedRateLimitStatus());
       } catch (TwitterException e) {
         System.err.println("FAILED TO CREATE BOT: " + conf);
         e.printStackTrace();
