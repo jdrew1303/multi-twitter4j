@@ -18,7 +18,7 @@ import twitter4j.TwitterResponse;
 public abstract class TwitterJSONResources extends TwitterResources {
 
   public enum As {
-    JSON;
+    JSON, POJO;
   };
 
   /*

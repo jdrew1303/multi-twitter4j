@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
 import org.insight.twitter.internal.EndPoint;
 import org.insight.twitter.internal.InternalRateLimitStatus;
 import org.insight.twitter.internal.TwitterBot;
-import org.insight.twitter.internal.TwitterJSONResources;
 import org.insight.twitter.internal.Util;
+import org.insight.twitter.wrapper.TwitterJSONResources;
 
 import twitter4j.CursorSupport;
 import twitter4j.GeoLocation;
@@ -37,7 +37,9 @@ import twitter4j.Relationship;
 import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.Trends;
+import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.TwitterResponse;
 import twitter4j.User;
 import twitter4j.UserList;
 
@@ -50,1030 +52,1081 @@ import twitter4j.UserList;
  */
 public class MultiTwitter extends TwitterJSONResources {
 
-	// Read configs from file
-	private final Set<String> configuredBots;
-
-	// How to use the Queue - Block, or throw rate limit exceptions
-	private final boolean blockOnRateLimit;
-
-	// Use blocking queues by default, configs from twitter4j.properties
-	public MultiTwitter() {
-		this(true, "twitter4j.properties");
-	}
-
-	public MultiTwitter(final boolean blocking, final String configFile) {
-		this.blockOnRateLimit = blocking;
-		this.configuredBots = getConfiguredBots(configFile);
-	}
-
-	/*
-	 * -------------------------- Utility Methods: --------------------------
-	 */
-
-	/*
-	 * Read config file, extract all the access tokens.
-	 */
-	private Set<String> getConfiguredBots(final String configFile) {
-		Set<String> botIDs = new HashSet<>();
-		Properties t4jProperties = new Properties();
-		try {
-			System.out.println("Reading Bot Configs from: " + "/" + configFile);
-			InputStream in = new FileInputStream(configFile);
-			t4jProperties.load(in);
-			in.close();
-		} catch (IOException e) {
-			System.err.println("IO ERROR Reading Properties!");
-			e.printStackTrace();
-			return botIDs;
-		}
-		// Find bots we have...
-		// Config file must be well formed!
-		Pattern p = Pattern.compile("bot\\.(.*?)\\.oauth\\.accessTokenSecret");
-		for (String key : t4jProperties.stringPropertyNames()) {
-			Matcher m = p.matcher(key);
-			if (m.find()) {
-				String strBotNum = m.group(1);
-				botIDs.add("bot." + strBotNum);
-				System.out.println("Detected config for: " + strBotNum);
-			}
-		}
-		return botIDs;
-	}
-
-	/*
-	 * Taking bots from Queue:
-	 */
-	private TwitterBot takeBot(final EndPoint endpoint) throws TwitterException {
-		// Either Block with take() until a bot is available, or throw rate
-		// limit exception:
-		// Lazy load bots to endpoints:
-		endpoint.getBotQueue().reloadConfiguredBots(configuredBots);
-
-		TwitterBot bot = blockOnRateLimit ? endpoint.getBotQueue().take() : endpoint.getBotQueue().poll();
-
-		if (bot == null) {
-			throw new TwitterException(endpoint + " Queue is EMPTY! Rate Limit for all Bots Reached!");
-		}
-		return bot;
-	}
-
-	/*
-	 * Returning bots to Queue:
-	 */
-	private void releaseBot(final TwitterBot bot) {
-		if (bot != null) {
-			bot.getEndPoint().getBotQueue().offer(bot);
-		}
-	}
-
-	/*
-	 * Wrap Responses from Twitter, Retry on failures, throw appropriate
-	 * Exceptions. This provides retry functions to any method.
-	 */
-	public abstract class TwitterCommand<T> {
-		public T getResponse(final EndPoint endpoint) throws TwitterException {
-			T result;
-			int retryLimit = configuredBots.size();
-			while (true) {
-				TwitterBot bot = null;
-				try {
-					bot = takeBot(endpoint);
-					result = fetchResponse(bot);
-					break;
-				} catch (TwitterException e) {
-					if (e.exceededRateLimitation() || e.isCausedByNetworkIssue()) {
-						if (--retryLimit <= 0) {
-							System.out.println("Retried " + configuredBots.size() + " times, giving up.");
-							throw e;
-						}
-					}
-					/*
-					 * Skip retrying Private / Deleted / Banned accounts
-					 */
-					if (e.resourceNotFound() || (e.getStatusCode() == 401)) {
-						System.out.println("Resource not found / Unauthorized, Giving Up.");
-						throw e;
-					}
-					System.out.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
-				} finally {
-					releaseBot(bot);
-				}
-			}
-			return result;
-		}
-
-		/*
-		 * Make an API Call with a given bot:
-		 */
-		public abstract T fetchResponse(TwitterBot bot) throws TwitterException;
-	}
-
-	/*
-	 * Page Through Results with Cursors:
-	 * TODO: JSON Response Per page??? 
-	 */
-	public abstract class TwitterCursor<T> {	  
-		public List<T> getElements(final int maxElements) throws TwitterException {
-			final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
-			List<T> elements = new ArrayList<>();
-			long cursor = -1;
-			try {
-				while (cursor != 0) {
-					CursorSupport pg = pageResponse(cursor);
-
-					elements.addAll(processElements(pg));
-
-					// Limit check:
-					if (elements.size() >= limit) {
-						break;
-					}
-					cursor = pg.getNextCursor();
-				}
-				return elements;
-			} catch (TwitterException e) {
-				throw e;
-			}
-		}
-
-		/*
-		 * Get a cursored page of results from somewhere:
-		 */
-		public abstract CursorSupport pageResponse(long cursor) throws TwitterException;
-
-		/*
-		 * Do something with elements on page:
-		 */
-		public abstract List<T> processElements(CursorSupport page) throws TwitterException;
-	}
-
-	/*
-	 * Page Through Results with "Pages" - timelines etc:
-	 */
-	// TODO:
-
-	public abstract class TwitterPage<T> {	
-
-	}
-
-	/*
-	 * ========================================================================
-	 * Bulk Request Methods: Paging through results, avoiding cursors etc. 
-	 * ========================================================================
-	 */
-
-	// TODO
-
-	/*
-	 * Timelines
-	 */
-
-	// TODO:
-
-
-	public List<Status> getUserTimelineJSON(final long userId, final Date oldest_created_at) {
-
-		List<Status> timeline = new ArrayList<>();
-
-		Paging paging = new Paging();
-		paging.count(200);
-
-		int ctweets = 0;
-
-		boolean datelimit = false;
-
-		while ((ctweets < 3200) && !datelimit) {
-
-			try {
-				ResponseList<Status> page = getUserTimeline(userId, paging);
-
-				Collection<Long> lowestID = new ArrayList<>();
-				for (Status s : page) {
-					lowestID.add(s.getId());
-
-					if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
-						// System.out.println("Date Limit!");
-						datelimit = true;
-						continue;
-					}
-
-					timeline.add(s);
-				}
-
-				System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
-
-				if (lowestID.size() < 1) {
-					break;
-				}
-
-				// Max ID is the lowest ID tweet you have already processed
-				paging.setMaxId((Collections.min(lowestID) - 1));
-				// pg.setSinceId(sinceId);
-
-				ctweets = ctweets + page.size();
-
-			} catch (TwitterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
-				break;
-			}
-
-		}
-
-		return timeline;
-	}
-
-	public List<Status> getUpdateUserTimeline(final long userId, final long sinceId) {
-
-		List<Status> timeline = new ArrayList<>();
-
-		Paging paging = new Paging();
-		paging.count(200);
-		paging.setSinceId(sinceId);
-
-		int ctweets = 0;
-
-		while (ctweets < 3200) {
-
-			try {
-				ResponseList<Status> page = getUserTimeline(userId, paging);
-
-				Collection<Long> lowestID = new ArrayList<>();
-				for (Status s : page) {
-					lowestID.add(s.getId());
-					timeline.add(s);
-				}
-
-				System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
-
-				if (lowestID.size() < 1) {
-					break;
-				}
-
-				// Max ID is the lowest ID tweet you have already processed
-				paging.setMaxId((Collections.min(lowestID) - 1));
-				paging.setSinceId(sinceId);
-
-				ctweets = ctweets + page.size();
-
-			} catch (TwitterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
-				break;
-			}
-
-		}
-
-		return timeline;
-	}
-
-	/*
-	 * Tweets
-	 */
-
-	// TODO
-
-	/*
-	 * Search
-	 */
-
-	// TODO
-
-	/*
-	 * FriendsFollowers
-	 */
-
-	public <T> List<Long> getBulkFriendsIDs(final T ident) throws TwitterException {
-		return getBulkFriendsIDs(ident, -1);
-	}
-
-	public <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException {
-		return (new TwitterCursor<Long>() {
-			@Override
-			public CursorSupport pageResponse(long cursor) throws TwitterException {
-				return fetchFriendsIDs(ident, cursor, 5000);
-			}
-
-			@Override
-			public List<Long> processElements(CursorSupport page) throws TwitterException {
-				List<Long> friends = new ArrayList<>();
-				for (Long l : ((IDs) page).getIDs()) {
-					friends.add(l);
-				}
-				return friends;
-			}
-		}).getElements(maxElements);
-	}
-
-	/*
-	 * Users
-	 */
-
-	// TODO
-
-	/*
-	 * FavoritesResources
-	 */
-
-	// TODO
-
-	/*
-	 * ListsResources
-	 */
-
-	// TODO
-
-	public List<User> getBulkListMembers(final long listId, final int maxElements) throws TwitterException {
-		return (new TwitterCursor<User>() {
-			@Override
-			public CursorSupport pageResponse(long cursor) throws TwitterException {
-				return getUserListMembers(listId, cursor);
-			}
-
-			@SuppressWarnings("unchecked")
-			@Override
-			public List<User> processElements(CursorSupport page) throws TwitterException {
-				List<User> listMembers = new ArrayList<>();
-				listMembers.addAll((PagableResponseList<User>) page);
-				return listMembers;
-			}
-		}).getElements(maxElements);
-	}
-
-	public List<String> getBulkListMembers(As json, final long listId, final int maxElements) throws TwitterException {
-		return (new TwitterCursor<String>() {
-			@Override
-			public CursorSupport pageResponse(long cursor) throws TwitterException {
-				return getUserListMembers(listId, cursor);
-			}
-
-			@SuppressWarnings("unchecked")
-			@Override
-			public List<String> processElements(CursorSupport page) throws TwitterException {
-				List<String> listMembers = new ArrayList<>();	        
-				listMembers.addAll(getJSONList((PagableResponseList<User>) page));
-				return listMembers;
-			}
-		}).getElements(maxElements);
-	}
-
-	/*
-	 * =======================================================================
-	 * Twitter4J Wrapper Implementations:
-	 * =======================================================================
-	 */
-
-
-	/*
-	 * TimelinesResources
-	 */
-
-	@Override
-	public <T> ResponseList<Status> fetchUserTimeline(final T ident, final Paging paging) throws TwitterException {
-		return (new TwitterCommand<ResponseList<Status>>() {
-			@Override
-			public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (ident instanceof String) {
-					return bot.getTwitter().timelines().getUserTimeline((String) ident, paging);
-				} else if (ident instanceof Long) {
-					return bot.getTwitter().timelines().getUserTimeline((Long) ident, paging);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.STATUSES_USER_TIMELINE);
-	}
-
-	/*
-	 * TweetsResources
-	 */
-
-	@Override
-	public ResponseList<Status> getRetweets(final long statusId) throws TwitterException {
-		return (new TwitterCommand<ResponseList<Status>>() {
-			@Override
-			public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-				return bot.getTwitter().tweets().getRetweets(statusId);
-			}
-		}).getResponse(EndPoint.STATUSES_RETWEETS);
-	}
-
-	@Override
-	public IDs getRetweeterIds(final long statusId, final int count, final long cursor) throws TwitterException {
-		return (new TwitterCommand<IDs>() {
-			@Override
-			public IDs fetchResponse(final TwitterBot bot) throws TwitterException {
-				return bot.getTwitter().tweets().getRetweeterIds(statusId, count, cursor);
-			}
-		}).getResponse(EndPoint.STATUSES_RETWEETERS);
-	}
-
-	@Override
-	public Status showStatus(final long id) throws TwitterException {
-		return (new TwitterCommand<Status>() {
-			@Override
-			public Status fetchResponse(final TwitterBot bot) throws TwitterException {
-				return bot.getTwitter().tweets().showStatus(id);
-			}
-		}).getResponse(EndPoint.STATUSES_SHOW);
-	}
-
-
-	@Override
-	public ResponseList<Status> lookup(final long[] ids) throws TwitterException {
-		return (new TwitterCommand<ResponseList<Status>>() {
-			@Override
-			public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-				return bot.getTwitter().tweets().lookup(ids);
-			}
-		}).getResponse(EndPoint.STATUSES_LOOKUP);
-	}
-
-	/*
-	 * SearchResource
-	 */
-
-	@Override
-	public QueryResult search(final Query query) throws TwitterException {
-		return (new TwitterCommand<QueryResult>() {
-			@Override
-			public QueryResult fetchResponse(final TwitterBot bot) throws TwitterException {
-				return bot.getTwitter().search().search(query);
-			}
-		}).getResponse(EndPoint.SEARCH_TWEETS);
-	}
-
-
-	/*
-	 * FriendsFollowersResources
-	 */
-
-	public <T> IDs fetchFriendsIDs(final T ident, final long cursor, final int count) throws TwitterException {
-		return (new TwitterCommand<IDs>() {
-			@Override
-			public IDs fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (ident instanceof String) {
-					return bot.getTwitter().friendsFollowers().getFriendsIDs((String) ident, cursor, count);
-				} else if (ident instanceof Long) {
-					return bot.getTwitter().friendsFollowers().getFriendsIDs((Long) ident, cursor, count);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.FRIENDS_IDS);
-	}
-
-	public <T> IDs fetchFollowersIDs(final T ident, final long cursor, final int count) throws TwitterException {
-		return (new TwitterCommand<IDs>() {
-			@Override
-			public IDs fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (ident instanceof String) {
-					return bot.getTwitter().friendsFollowers().getFollowersIDs((String) ident, cursor, count);
-				} else if (ident instanceof Long) {
-					return bot.getTwitter().friendsFollowers().getFollowersIDs((Long) ident, cursor, count);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.FOLLOWERS_IDS);
-	}
-
-	public <T> Relationship fetchFriendship(final T sourceIdent, final T targetIdent) throws TwitterException {
-		return (new TwitterCommand<Relationship>() {
-			@Override
-			public Relationship fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (sourceIdent instanceof String && targetIdent instanceof String) {
-					return bot.getTwitter().friendsFollowers().showFriendship((String) sourceIdent, (String) targetIdent);
-				} else if (sourceIdent instanceof Long && targetIdent instanceof Long) {
-					return bot.getTwitter().friendsFollowers().showFriendship((Long) sourceIdent, (Long) targetIdent);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.FRIENDSHIPS_SHOW);
-	}
-
-	public <T> PagableResponseList<User> fetchFriendsList(final T ident, final long cursor, final int count, final boolean skipStatus,
-			final boolean includeUserEntities) throws TwitterException {
-		return (new TwitterCommand<PagableResponseList<User>>() {
-			@Override
-			public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (ident instanceof String) {
-					return bot.getTwitter().friendsFollowers().getFriendsList((String) ident, cursor, count, skipStatus, includeUserEntities);
-				} else if (ident instanceof Long) {
-					return bot.getTwitter().friendsFollowers().getFriendsList((Long) ident, cursor, count, skipStatus, includeUserEntities);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.FRIENDS_LIST);
-	}
-
-	public <T> PagableResponseList<User> fetchFollowersList(final T ident, final long cursor, final int count, final boolean skipStatus,
-			final boolean includeUserEntities) throws TwitterException {
-		return (new TwitterCommand<PagableResponseList<User>>() {
-			@Override
-			public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				if (ident instanceof String) {
-					return bot.getTwitter().friendsFollowers().getFollowersList((String) ident, cursor, count, skipStatus, includeUserEntities);
-				} else if (ident instanceof Long) {
-					return bot.getTwitter().friendsFollowers().getFollowersList((Long) ident, cursor, count, skipStatus, includeUserEntities);
-				} else {
-					throw new IllegalArgumentException();
-				}
-			}
-		}).getResponse(EndPoint.FOLLOWERS_LIST);
-	}
-
-	/*
-	 * UsersResources
-	 */
-
-	 public <T> ResponseList<User> fetchLookupUsers(final T idents) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<User>>() {
-			 @Override
-			 public ResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-
-				 if (idents instanceof String[]) {
-					 return bot.getTwitter().users().lookupUsers((String[]) idents);
-				 } else if (idents instanceof Long[]) {
-					 return bot.getTwitter().users().lookupUsers(Util.toPrimitive((Long[]) idents));
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.USERS_LOOKUP);
-	 }
-
-
-	 @Override
-	 public <T> User fetchUser(final T ident) throws TwitterException {
-		 return (new TwitterCommand<User>() {
-			 @Override
-			 public User fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().users().showUser((String) ident);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().users().showUser((Long) ident);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.USERS_SHOW);
-	 }
-
-
-	 /*
-	  * TODO: T4J Missing Paging or Cursor???
-	  */
-	 @Override
-	 public ResponseList<User> searchUsers(final String query, final int page) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<User>>() {
-			 @Override
-			 public ResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().users().searchUsers(query, page);
-			 }
-		 }).getResponse(EndPoint.USERS_SEARCH);
-	 }
-
-	 @Override
-	 public <T> ResponseList<User> fetchContributees(final T ident) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<User>>() {
-			 @Override
-			 public ResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().users().getContributees((String)ident);	              
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().users().getContributees((Long)ident); 
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.USERS_CONTRIBUTEES);
-	 }
-
-
-	 @Override
-	 public <T> ResponseList<User> fetchContributors(final T ident) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<User>>() {
-			 @Override
-			 public ResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().users().getContributors((String)ident);	              
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().users().getContributors((Long)ident); 
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.USERS_CONTRIBUTORS);
-	 }
-
-	 /*
-	  * FavoritesResources
-	  */
-
-	 @Override
-	 public <T> ResponseList<Status> fetchFavorites(final T ident, final Paging paging) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<Status>>() {
-			 @Override
-			 public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().favorites().getFavorites((String) ident, paging);	              
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().favorites().getFavorites((Long) ident, paging);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.FAVORITES_LIST);
-	 }
-
-
-
-	 /*
-	  * ListsResources
-	  */
-	 @Override
-	 public <T> ResponseList<UserList> fetchUserLists(final T ident) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<UserList>>() {
-			 @Override
-			 public ResponseList<UserList> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().getUserLists((String)ident);           
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().getUserLists((Long)ident);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.LISTS_LIST);
-	 }
-
-
-	 @Override
-	 public ResponseList<Status> getUserListStatuses(final long listId, final Paging paging) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<Status>>() {
-			 @Override
-			 public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().getUserListStatuses(listId, paging);
-			 }
-		 }).getResponse(EndPoint.LISTS_STATUSES);
-	 }
-
-	 @Override
-	 public <T> ResponseList<Status> fetchUserListStatuses(final T ident, final String slug, final Paging paging) throws TwitterException {
-		 return (new TwitterCommand<ResponseList<Status>>() {
-			 @Override
-			 public ResponseList<Status> fetchResponse(final TwitterBot bot) throws TwitterException {
-
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().getUserListStatuses((String)ident, slug, paging);        
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().getUserListStatuses((Long)ident, slug, paging);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.LISTS_STATUSES);
-	 }
-
-
-	 @Override
-	 public <T> PagableResponseList<UserList> fetchUserListMemberships(final T ident, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<UserList>>() {
-			 @Override
-			 public PagableResponseList<UserList> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().getUserListMemberships((String)ident, cursor);         
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().getUserListMemberships((Long)ident, cursor);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-			 }
-		 }).getResponse(EndPoint.LISTS_MEMBERSHIPS);
-	 }
-
-	 @Override
-	 public PagableResponseList<User> getUserListSubscribers(final long listId, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<User>>() {
-			 @Override
-			 public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().getUserListSubscribers(listId, cursor);
-			 }
-		 }).getResponse(EndPoint.LISTS_SUBSCRIBERS);
-	 }
-
-
-
-
-
-
-
-	 @Override
-	 public <T> PagableResponseList<User> fetchUserListSubscribers(final T ident, final String slug, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<User>>() {
-			 @Override
-			 public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().getUserListSubscribers((String) ident, slug, cursor);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().getUserListSubscribers((Long) ident, slug, cursor);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-			 }
-		 }).getResponse(EndPoint.LISTS_SUBSCRIBERS);
-	 }
-
-
-	 @Override
-	 public User showUserListSubscription(final long listId, final long userId) throws TwitterException {
-		 return (new TwitterCommand<User>() {
-			 @Override
-			 public User fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().showUserListSubscription(listId, userId);
-			 }
-		 }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
-	 }
-
-
-	 @Override
-	 public <T> User fetchUserListSubscription(final T ident, final String slug, final long userId) throws TwitterException {
-		 return (new TwitterCommand<User>() {
-			 @Override
-			 public User fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().showUserListSubscription((String)ident, slug, userId);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().showUserListSubscription((Long) ident, slug, userId);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-			 }
-		 }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
-	 }
-
-	 @Override
-	 public User showUserListMembership(final long listId, final long userId) throws TwitterException {
-		 return (new TwitterCommand<User>() {
-			 @Override
-			 public User fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().showUserListMembership(listId, userId);
-			 }
-		 }).getResponse(EndPoint.LISTS_MEMBERS_SHOW);
-	 }
-
-
-
-	 @Override
-	 public <T> User fetchUserListMembership(final T ident, final String slug, final long userId) throws TwitterException {
-		 return (new TwitterCommand<User>() {
-			 @Override
-			 public User fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().showUserListMembership((String)ident, slug, userId);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().showUserListMembership((Long) ident, slug, userId);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-			 }
-		 }).getResponse(EndPoint.LISTS_MEMBERS_SHOW);
-	 }
-
-
-	 @Override
-	 public PagableResponseList<User> getUserListMembers(final long listId, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<User>>() {
-			 @Override
-			 public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().getUserListMembers(listId, cursor);
-			 }
-		 }).getResponse(EndPoint.LISTS_MEMBERS);
-	 }
-
-
-
-
-
-	 @Override
-	 public <T> PagableResponseList<User> fetchUserListMembers(final T ident, final String slug, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<User>>() {
-			 @Override
-			 public PagableResponseList<User> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().getUserListMembers((String)ident, slug, cursor);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().getUserListMembers((Long) ident, slug, cursor);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-			 }
-		 }).getResponse(EndPoint.LISTS_MEMBERS);
-	 }
-
-
-	 @Override
-	 public UserList showUserList(final long listId) throws TwitterException {
-		 return (new TwitterCommand<UserList>() {
-			 @Override
-			 public UserList fetchResponse(final TwitterBot bot) throws TwitterException {
-				 return bot.getTwitter().list().showUserList(listId);
-			 }
-		 }).getResponse(EndPoint.LISTS_SHOW);
-	 }
-
-
-
-	 @Override
-	 public <T> UserList fetchUserList(final T ident, final String slug) throws TwitterException {
-		 return (new TwitterCommand<UserList>() {
-			 @Override
-			 public UserList fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().list().showUserList((String)ident, slug);
-				 } else if (ident instanceof Long) {
-					 return bot.getTwitter().list().showUserList((Long) ident, slug);
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-			 }
-		 }).getResponse(EndPoint.LISTS_SHOW);
-	 }
-
-	 /*
-	  * TODO: Twitter4J Missing getUserListSubscriptions(long userId, cursor...)
-	  */	  
-	  @Override
-	  public <T> PagableResponseList<UserList> fetchUserListSubscriptions(final T ident, final long cursor) throws TwitterException {
-		 return (new TwitterCommand<PagableResponseList<UserList>>() {
-			 @Override
-			 public PagableResponseList<UserList> fetchResponse(final TwitterBot bot) throws TwitterException {
-				 if (ident instanceof String) {
-					 return bot.getTwitter().getUserListSubscriptions((String)ident, cursor);
-				 } else if (ident instanceof Long) {
-					 throw new IllegalArgumentException();
-				 } else {
-					 throw new IllegalArgumentException();
-				 }
-
-
-			 }
-		 }).getResponse(EndPoint.LISTS_SUBSCRIPTIONS);
-	  }
-
-	  @Override
-	  public <T> PagableResponseList<UserList> fetchUserListsOwnerships(final T ident, final int count, final long cursor) throws TwitterException {
-		  return (new TwitterCommand<PagableResponseList<UserList>>() {
-			  @Override
-			  public PagableResponseList<UserList> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  if (ident instanceof String) {
-					  return bot.getTwitter().list().getUserListsOwnerships((String)ident, count, cursor);
-				  } else if (ident instanceof Long) {
-					  return bot.getTwitter().list().getUserListsOwnerships((Long) ident, count, cursor);
-				  } else {
-					  throw new IllegalArgumentException();
-				  }
-
-			  }
-		  }).getResponse(EndPoint.LISTS_OWNERSHIPS);
-	  }
-
-
-	  /*
-	   * PlacesGeoResources
-	   */
-
-	  @Override
-	  public Place getGeoDetails(final String placeId) throws TwitterException {
-		  return (new TwitterCommand<Place>() {
-			  @Override
-			  public Place fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().placesGeo().getGeoDetails(placeId);
-			  }
-		  }).getResponse(EndPoint.GEO_ID);
-	  }
-
-	  @Override
-	  public ResponseList<Place> reverseGeoCode(final GeoQuery query) throws TwitterException {
-		  return (new TwitterCommand<ResponseList<Place>>() {
-			  @Override
-			  public ResponseList<Place> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().placesGeo().reverseGeoCode(query);
-			  }
-		  }).getResponse(EndPoint.GEO_REVERSE_GEOCODE);
-	  }
-
-	  @Override
-	  public ResponseList<Place> searchPlaces(final GeoQuery query) throws TwitterException {
-		  return (new TwitterCommand<ResponseList<Place>>() {
-			  @Override
-			  public ResponseList<Place> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().placesGeo().searchPlaces(query);
-			  }
-		  }).getResponse(EndPoint.GEO_SEARCH);
-	  }
-
-	  @Override
-	  public ResponseList<Place>
-	  getSimilarPlaces(final GeoLocation location, final String name, final String containedWithin, final String streetAddress) throws TwitterException {
-		  return (new TwitterCommand<ResponseList<Place>>() {
-			  @Override
-			  public ResponseList<Place> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().placesGeo().getSimilarPlaces(location, name, containedWithin, streetAddress);
-			  }
-		  }).getResponse(EndPoint.GEO_SIMILAR_PLACES);
-	  }
-
-	  /*
-	   * TrendsResources
-	   */
-
-	  @Override
-	  public Trends getPlaceTrends(final int woeid) throws TwitterException {
-		  return (new TwitterCommand<Trends>() {
-			  @Override
-			  public Trends fetchResponse(final TwitterBot bot) throws TwitterException {
-
-				  return bot.getTwitter().trends().getPlaceTrends(woeid);
-			  }
-		  }).getResponse(EndPoint.TRENDS_PLACE);
-	  }
-
-	  @Override
-	  public ResponseList<Location> getAvailableTrends() throws TwitterException {
-		  return (new TwitterCommand<ResponseList<Location>>() {
-			  @Override
-			  public ResponseList<Location> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().trends().getAvailableTrends();
-			  }
-		  }).getResponse(EndPoint.TRENDS_AVAILABLE);
-	  }
-
-	  @Override
-	  public ResponseList<Location> getClosestTrends(final GeoLocation location) throws TwitterException {
-		  return (new TwitterCommand<ResponseList<Location>>() {
-			  @Override
-			  public ResponseList<Location> fetchResponse(final TwitterBot bot) throws TwitterException {
-				  return bot.getTwitter().trends().getClosestTrends(location);
-			  }
-		  }).getResponse(EndPoint.TRENDS_CLOSEST);
-	  }
-
-
-
-	  /*
-	   * HelpResources
-	   */
-	  @Override
-	  public Map<String, RateLimitStatus> getRateLimitStatus(final String... resources) throws TwitterException {
-		  EndPoint[] endpoints = new EndPoint[resources.length];
-		  for (int i = 0; i < resources.length; i++) {
-			  endpoints[i] = EndPoint.fromString(resources[i]);
-		  }
-		  return getRateLimitStatus(endpoints);
-	  }
-
-	  @Override
-	  public Map<String, RateLimitStatus> getRateLimitStatus() throws TwitterException {
-		  return getRateLimitStatus(EndPoint.values());
-	  }
-
-	  /*
-	   * Get combined Rate Limit for an endpoint (or several)
-	   */
-	  public Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint[] endpoints) {
-		  Map<String, RateLimitStatus> rateLimits = new HashMap<>();
-		  for (EndPoint target : endpoints) {
-			  rateLimits.putAll(getRateLimitStatus(target));
-		  }
-		  return rateLimits;
-	  }
-
-	  /*
-	   * Get Combined Rate Limit from all available bots
-	   */
-	  public Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint endpoint) {
-		  Map<String, RateLimitStatus> rateLimit = new HashMap<>();
-		  InternalRateLimitStatus rl = new InternalRateLimitStatus();
-		  Set<TwitterBot> allActiveBots = endpoint.getBotQueue().getLoadedBots();
-		  for (TwitterBot bot : allActiveBots) {
-			  rl = rl.mergeWith(bot.getCachedRateLimitStatus());
-		  }
-		  rateLimit.put(endpoint.toString(), rl);
-		  return rateLimit;
-	  }
-
-	  /*
-	   * All other unimplemented methods will throw UnsupportedMethodException
-	   */
-
+  private final Set<String> configuredBots;
+  private final boolean useBlockingQueue;
+
+  public MultiTwitter() {
+    this(true, "twitter4j.properties");
+  }
+
+  public MultiTwitter(final boolean blocking, final String configFile) {
+    this.useBlockingQueue = blocking;
+    this.configuredBots = getConfiguredBots(configFile);
+  }
+
+  public MultiTwitter(final boolean blocking, final Properties t4jProperties) {
+    this.useBlockingQueue = blocking;
+    this.configuredBots = getConfiguredBots(t4jProperties);
+  }
+
+  /*
+   * -------------------------- Utility Methods: --------------------------
+   */
+
+  /*
+   * Read config file, extract all the access tokens.
+   */
+  private Set<String> getConfiguredBots(final String configFile) {
+    Set<String> botIDs = new HashSet<>();
+    try (InputStream in = new FileInputStream(configFile)) {
+      Properties t4jProperties = new Properties();
+      System.out.println("Reading Bot Configs from: " + "/" + configFile);
+      t4jProperties.load(in);
+      botIDs.addAll(getConfiguredBots(t4jProperties));
+    } catch (IOException e) {
+      System.err.println("IO ERROR Reading Properties!");
+      e.printStackTrace();
+    }
+    return botIDs;
+  }
+
+  private Set<String> getConfiguredBots(final Properties t4jProperties) {
+    Set<String> botIDs = new HashSet<>();
+    // Find bots we have...
+    // Config file must be well formed!
+    Pattern p = Pattern.compile("bot\\.(.*?)\\.oauth\\.accessTokenSecret");
+    for (String key : t4jProperties.stringPropertyNames()) {
+      Matcher m = p.matcher(key);
+      if (m.find()) {
+        String strBotNum = m.group(1);
+        botIDs.add("bot." + strBotNum);
+        System.out.println("Detected config for: " + strBotNum);
+      }
+    }
+    return botIDs;
+  }
+
+  /*
+   * Taking bots from Queue:
+   */
+  private TwitterBot takeBot(final EndPoint endpoint) throws TwitterException {
+    // Either Block with take() until a bot is available, or throw rate
+    // limit exception:
+    // Lazy load bots to endpoints:
+    endpoint.getBotQueue().reloadConfiguredBots(configuredBots);
+
+    TwitterBot bot = useBlockingQueue ? endpoint.getBotQueue().take() : endpoint.getBotQueue().poll();
+
+    if (bot == null) {
+      throw new TwitterException(endpoint + " Queue is EMPTY! Rate Limit for all Bots Reached!");
+    }
+    return bot;
+  }
+
+  /*
+   * Returning bots to Queue:
+   */
+  private void releaseBot(final TwitterBot bot) {
+    if (bot != null) {
+      bot.getEndPoint().getBotQueue().offer(bot);
+    }
+  }
+
+  /*
+   * Wrap Responses from Twitter, Retry on failures, throw appropriate
+   * Exceptions. This provides retry functions to any method.
+   */
+  public abstract class TwitterCommand<K> {
+    public K getResponse(final EndPoint endpoint) throws TwitterException {
+      K result;
+      int retryLimit = configuredBots.size();
+      while (true) {
+        TwitterBot bot = null;
+        try {
+          bot = takeBot(endpoint);
+          result = fetchResponse(bot.getTwitter());
+          break;
+        } catch (TwitterException e) {
+          if (e.exceededRateLimitation() || e.isCausedByNetworkIssue()) {
+            if (--retryLimit <= 0) {
+              System.out.println("Retried " + configuredBots.size() + " times, giving up.");
+              throw e;
+            }
+          }
+          /*
+           * Skip retrying Private / Deleted / Banned accounts
+           */
+          if (e.resourceNotFound() || (e.getStatusCode() == 401)) {
+            System.out.println("Resource not found / Unauthorized, Giving Up.");
+            throw e;
+          }
+          System.out.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
+        } finally {
+          releaseBot(bot);
+        }
+      }
+      return result;
+    }
+
+    /*
+     * Make an API Call with a given bot:
+     */
+    public abstract K fetchResponse(final Twitter twitter) throws TwitterException;
+  }
+
+  /*
+   * Page Through Results with Cursors:
+   */
+  public abstract class TwitterCursor<K> {
+    @SuppressWarnings("unchecked")
+    public List<K> getElements(As type, final int maxElements) throws TwitterException {
+      final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
+      List<K> elements = new ArrayList<>();
+      long cursor = -1;
+      try {
+        while (cursor != 0) {
+          CursorSupport pg = pageResponse(cursor);
+          if (type.equals(As.POJO)) {
+            elements.addAll(processElements(pg));
+          } else if (type.equals(As.JSON)) {
+            elements.addAll((Collection<? extends K>) processElements(type, pg));
+          }
+          // Limit check:
+          if (elements.size() >= limit) {
+            break;
+          }
+          cursor = pg.getNextCursor();
+        }
+        return elements;
+      } catch (TwitterException e) {
+        throw e;
+      }
+    }
+
+    /*
+     * Get a cursored page of results from somewhere:
+     */
+    public abstract CursorSupport pageResponse(long cursor) throws TwitterException;
+
+    /*
+     * Do something with elements on page:
+     * By default, add all elements to list:
+     */
+    @SuppressWarnings("unchecked")
+    public List<K> processElements(CursorSupport page) throws TwitterException {
+      List<K> elements = new ArrayList<>();
+      elements.addAll((List<K>) page);
+      return elements;
+    }
+
+    /*
+     * By default, add json to List:
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> processElements(As json, CursorSupport page) throws TwitterException {
+      List<String> elements = new ArrayList<>();
+      elements.addAll(getJSONList((List<? extends TwitterResponse>) page));
+      return elements;
+    }
+  }
+
+  /*
+   * Page Through Results with "Pages" - timelines etc:
+   */
+  // TODO:
+
+  public abstract class TwitterPage<K> {
+
+  }
+
+  /*
+   * ========================================================================
+   * Bulk Request Methods: Paging through results, avoiding cursors etc. 
+   * ========================================================================
+   */
+
+  // as POJO (Specify K) or JSON (K = String):
+
+  /*
+   * Timelines
+   */
+
+  // TODO: (Better Paging)
+  public List<Status> getUserTimelineJSON(final long userId, final Date oldest_created_at) {
+
+    List<Status> timeline = new ArrayList<>();
+
+    Paging paging = new Paging();
+    paging.count(200);
+
+    int ctweets = 0;
+
+    boolean datelimit = false;
+
+    while ((ctweets < 3200) && !datelimit) {
+
+      try {
+        ResponseList<Status> page = getUserTimeline(userId, paging);
+
+        Collection<Long> lowestID = new ArrayList<>();
+        for (Status s : page) {
+          lowestID.add(s.getId());
+
+          if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
+            // System.out.println("Date Limit!");
+            datelimit = true;
+            continue;
+          }
+
+          timeline.add(s);
+        }
+
+        System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
+
+        if (lowestID.size() < 1) {
+          break;
+        }
+
+        // Max ID is the lowest ID tweet you have already processed
+        paging.setMaxId((Collections.min(lowestID) - 1));
+        // pg.setSinceId(sinceId);
+
+        ctweets = ctweets + page.size();
+
+      } catch (TwitterException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
+        break;
+      }
+
+    }
+
+    return timeline;
+  }
+
+  public List<Status> getUpdateUserTimeline(final long userId, final long sinceId) {
+
+    List<Status> timeline = new ArrayList<>();
+
+    Paging paging = new Paging();
+    paging.count(200);
+    paging.setSinceId(sinceId);
+
+    int ctweets = 0;
+
+    while (ctweets < 3200) {
+
+      try {
+        ResponseList<Status> page = getUserTimeline(userId, paging);
+
+        Collection<Long> lowestID = new ArrayList<>();
+        for (Status s : page) {
+          lowestID.add(s.getId());
+          timeline.add(s);
+        }
+
+        System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
+
+        if (lowestID.size() < 1) {
+          break;
+        }
+
+        // Max ID is the lowest ID tweet you have already processed
+        paging.setMaxId((Collections.min(lowestID) - 1));
+        paging.setSinceId(sinceId);
+
+        ctweets = ctweets + page.size();
+
+      } catch (TwitterException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
+        break;
+      }
+
+    }
+
+    return timeline;
+  }
+
+  /*
+   * Tweets
+   */
+
+  public List<Long> getBulkRetweeterIds(final long statusId, final int maxElements) throws TwitterException {
+    return (new TwitterCursor<Long>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return getRetweeterIds(statusId, 200, cursor);
+      }
+
+      @Override
+      public List<Long> processElements(CursorSupport page) throws TwitterException {
+        List<Long> retweeterIDs = new ArrayList<>();
+        for (Long l : ((IDs) page).getIDs()) {
+          retweeterIDs.add(l);
+        }
+        return retweeterIDs;
+      }
+    }).getElements(As.POJO, maxElements);
+  }
+
+  // TODO: lookup() Wrapper that uses both lookup() and show()
+
+  /*
+   * Search
+   */
+
+  // TODO:
+
+  /*
+   * FriendsFollowers
+   */
+
+  public <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException {
+    return (new TwitterCursor<Long>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchFriendsIDs(ident, cursor, 5000);
+      }
+
+      @Override
+      public List<Long> processElements(CursorSupport page) throws TwitterException {
+        List<Long> friends = new ArrayList<>();
+        for (Long l : ((IDs) page).getIDs()) {
+          friends.add(l);
+        }
+        return friends;
+      }
+    }).getElements(As.POJO, maxElements);
+  }
+
+  public <T> List<Long> getBulkFollowersIDs(final T ident, final int maxElements) throws TwitterException {
+    return (new TwitterCursor<Long>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchFollowersIDs(ident, cursor, 5000);
+      }
+
+      @Override
+      public List<Long> processElements(CursorSupport page) throws TwitterException {
+        List<Long> followers = new ArrayList<>();
+        for (Long l : ((IDs) page).getIDs()) {
+          followers.add(l);
+        }
+        return followers;
+      }
+    }).getElements(As.POJO, maxElements);
+  }
+
+  public <T, K> List<K>
+      getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchFriendsList(ident, cursor, 200, skipStatus, includeUserEntities);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  public <T, K> List<K>
+      getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchFollowersList(ident, cursor, 200, skipStatus, includeUserEntities);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  /*
+   * Users
+   */
+
+  // TODO
+
+  /*
+   * FavoritesResources
+   */
+
+  // TODO
+
+  /*
+   * ListsResources
+   */
+
+  // TODO: getUserListStatuses()... Paging
+
+  public <T, K> List<K> getBulkUserListMemberships(As type, final T ident, int maxElements) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchUserListMemberships(ident, cursor);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  public <T, K> List<K> getBulkUserListSubscribers(As type, final T ident, final String slug, int maxElements) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchUserListSubscribers(ident, slug, cursor);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  public <K> List<K> getBulkUserListMembers(As type, final long listId, final int maxElements) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return getUserListMembers(listId, cursor);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  public <T, K> List<K> getBulkUserListSubscriptions(As type, final T ident, int maxElements) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchUserListSubscriptions(ident, cursor);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  public <T, K> List<K> getBulkUserListsOwnerships(As type, final T ident, int maxElements) throws TwitterException {
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport pageResponse(long cursor) throws TwitterException {
+        return fetchUserListsOwnerships(ident, 1000, cursor);
+      }
+    }).getElements(type, maxElements);
+  }
+
+  /*
+   * =======================================================================
+   * Twitter4J Wrapper Implementations:
+   * =======================================================================
+   */
+
+  /*
+   * TimelinesResources
+   */
+
+  @Override
+  public <T> ResponseList<Status> fetchUserTimeline(final T ident, final Paging paging) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.timelines().getUserTimeline((String) ident, paging);
+        } else if (ident instanceof Long) {
+          return twitter.timelines().getUserTimeline((Long) ident, paging);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.STATUSES_USER_TIMELINE);
+  }
+
+  /*
+   * TweetsResources
+   */
+
+  @Override
+  public ResponseList<Status> getRetweets(final long statusId) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.tweets().getRetweets(statusId);
+      }
+    }).getResponse(EndPoint.STATUSES_RETWEETS);
+  }
+
+  @Override
+  public IDs getRetweeterIds(final long statusId, final int count, final long cursor) throws TwitterException {
+    return (new TwitterCommand<IDs>() {
+      @Override
+      public IDs fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.tweets().getRetweeterIds(statusId, count, cursor);
+      }
+    }).getResponse(EndPoint.STATUSES_RETWEETERS);
+  }
+
+  @Override
+  public Status showStatus(final long id) throws TwitterException {
+    return (new TwitterCommand<Status>() {
+      @Override
+      public Status fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.tweets().showStatus(id);
+      }
+    }).getResponse(EndPoint.STATUSES_SHOW);
+  }
+
+  @Override
+  public ResponseList<Status> lookup(final long[] ids) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.tweets().lookup(ids);
+      }
+    }).getResponse(EndPoint.STATUSES_LOOKUP);
+  }
+
+  /*
+   * SearchResource
+   */
+
+  @Override
+  public QueryResult search(final Query query) throws TwitterException {
+    return (new TwitterCommand<QueryResult>() {
+      @Override
+      public QueryResult fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.search().search(query);
+      }
+    }).getResponse(EndPoint.SEARCH_TWEETS);
+  }
+
+  /*
+   * FriendsFollowersResources
+   */
+
+  @Override
+  public <T> IDs fetchFriendsIDs(final T ident, final long cursor, final int count) throws TwitterException {
+    return (new TwitterCommand<IDs>() {
+      @Override
+      public IDs fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.friendsFollowers().getFriendsIDs((String) ident, cursor, count);
+        } else if (ident instanceof Long) {
+          return twitter.friendsFollowers().getFriendsIDs((Long) ident, cursor, count);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FRIENDS_IDS);
+  }
+
+  @Override
+  public <T> IDs fetchFollowersIDs(final T ident, final long cursor, final int count) throws TwitterException {
+    return (new TwitterCommand<IDs>() {
+      @Override
+      public IDs fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.friendsFollowers().getFollowersIDs((String) ident, cursor, count);
+        } else if (ident instanceof Long) {
+          return twitter.friendsFollowers().getFollowersIDs((Long) ident, cursor, count);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FOLLOWERS_IDS);
+  }
+
+  @Override
+  public <T> Relationship fetchFriendship(final T sourceIdent, final T targetIdent) throws TwitterException {
+    return (new TwitterCommand<Relationship>() {
+      @Override
+      public Relationship fetchResponse(final Twitter twitter) throws TwitterException {
+        if (sourceIdent instanceof String && targetIdent instanceof String) {
+          return twitter.friendsFollowers().showFriendship((String) sourceIdent, (String) targetIdent);
+        } else if (sourceIdent instanceof Long && targetIdent instanceof Long) {
+          return twitter.friendsFollowers().showFriendship((Long) sourceIdent, (Long) targetIdent);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FRIENDSHIPS_SHOW);
+  }
+
+  @Override
+  public <T> PagableResponseList<User> fetchFriendsList(final T ident, final long cursor, final int count, final boolean skipStatus,
+                                                        final boolean includeUserEntities) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.friendsFollowers().getFriendsList((String) ident, cursor, count, skipStatus, includeUserEntities);
+        } else if (ident instanceof Long) {
+          return twitter.friendsFollowers().getFriendsList((Long) ident, cursor, count, skipStatus, includeUserEntities);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FRIENDS_LIST);
+  }
+
+  @Override
+  public <T> PagableResponseList<User> fetchFollowersList(final T ident, final long cursor, final int count, final boolean skipStatus,
+                                                          final boolean includeUserEntities) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.friendsFollowers().getFollowersList((String) ident, cursor, count, skipStatus, includeUserEntities);
+        } else if (ident instanceof Long) {
+          return twitter.friendsFollowers().getFollowersList((Long) ident, cursor, count, skipStatus, includeUserEntities);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FOLLOWERS_LIST);
+  }
+
+  /*
+   * UsersResources
+   */
+
+  public <T> ResponseList<User> fetchLookupUsers(final T idents) throws TwitterException {
+    return (new TwitterCommand<ResponseList<User>>() {
+      @Override
+      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+
+        if (idents instanceof String[]) {
+          return twitter.users().lookupUsers((String[]) idents);
+        } else if (idents instanceof Long[]) {
+          return twitter.users().lookupUsers(Util.toPrimitive((Long[]) idents));
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.USERS_LOOKUP);
+  }
+
+  @Override
+  public <T> User fetchUser(final T ident) throws TwitterException {
+    return (new TwitterCommand<User>() {
+      @Override
+      public User fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.users().showUser((String) ident);
+        } else if (ident instanceof Long) {
+          return twitter.users().showUser((Long) ident);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.USERS_SHOW);
+  }
+
+  /*
+   * TODO: T4J Missing Paging or Cursor???
+   */
+  @Override
+  public ResponseList<User> searchUsers(final String query, final int page) throws TwitterException {
+    return (new TwitterCommand<ResponseList<User>>() {
+      @Override
+      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.users().searchUsers(query, page);
+      }
+    }).getResponse(EndPoint.USERS_SEARCH);
+  }
+
+  @Override
+  public <T> ResponseList<User> fetchContributees(final T ident) throws TwitterException {
+    return (new TwitterCommand<ResponseList<User>>() {
+      @Override
+      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.users().getContributees((String) ident);
+        } else if (ident instanceof Long) {
+          return twitter.users().getContributees((Long) ident);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.USERS_CONTRIBUTEES);
+  }
+
+  @Override
+  public <T> ResponseList<User> fetchContributors(final T ident) throws TwitterException {
+    return (new TwitterCommand<ResponseList<User>>() {
+      @Override
+      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.users().getContributors((String) ident);
+        } else if (ident instanceof Long) {
+          return twitter.users().getContributors((Long) ident);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.USERS_CONTRIBUTORS);
+  }
+
+  /*
+   * FavoritesResources
+   */
+
+  @Override
+  public <T> ResponseList<Status> fetchFavorites(final T ident, final Paging paging) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.favorites().getFavorites((String) ident, paging);
+        } else if (ident instanceof Long) {
+          return twitter.favorites().getFavorites((Long) ident, paging);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.FAVORITES_LIST);
+  }
+
+  /*
+   * ListsResources
+   */
+
+  @Override
+  public <T> ResponseList<UserList> fetchUserLists(final T ident) throws TwitterException {
+    return (new TwitterCommand<ResponseList<UserList>>() {
+      @Override
+      public ResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().getUserLists((String) ident);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserLists((Long) ident);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_LIST);
+  }
+
+  @Override
+  public ResponseList<Status> getUserListStatuses(final long listId, final Paging paging) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().getUserListStatuses(listId, paging);
+      }
+    }).getResponse(EndPoint.LISTS_STATUSES);
+  }
+
+  @Override
+  public <T> ResponseList<Status> fetchUserListStatuses(final T ident, final String slug, final Paging paging) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Status>>() {
+      @Override
+      public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
+
+        if (ident instanceof String) {
+          return twitter.list().getUserListStatuses((String) ident, slug, paging);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserListStatuses((Long) ident, slug, paging);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_STATUSES);
+  }
+
+  @Override
+  public <T> PagableResponseList<UserList> fetchUserListMemberships(final T ident, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<UserList>>() {
+      @Override
+      public PagableResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().getUserListMemberships((String) ident, cursor);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserListMemberships((Long) ident, cursor);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_MEMBERSHIPS);
+  }
+
+  @Override
+  public PagableResponseList<User> getUserListSubscribers(final long listId, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().getUserListSubscribers(listId, cursor);
+      }
+    }).getResponse(EndPoint.LISTS_SUBSCRIBERS);
+  }
+
+  @Override
+  public <T> PagableResponseList<User> fetchUserListSubscribers(final T ident, final String slug, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().getUserListSubscribers((String) ident, slug, cursor);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserListSubscribers((Long) ident, slug, cursor);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_SUBSCRIBERS);
+  }
+
+  @Override
+  public User showUserListSubscription(final long listId, final long userId) throws TwitterException {
+    return (new TwitterCommand<User>() {
+      @Override
+      public User fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().showUserListSubscription(listId, userId);
+      }
+    }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
+  }
+
+  @Override
+  public <T> User fetchUserListSubscription(final T ident, final String slug, final long userId) throws TwitterException {
+    return (new TwitterCommand<User>() {
+      @Override
+      public User fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().showUserListSubscription((String) ident, slug, userId);
+        } else if (ident instanceof Long) {
+          return twitter.list().showUserListSubscription((Long) ident, slug, userId);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
+  }
+
+  @Override
+  public User showUserListMembership(final long listId, final long userId) throws TwitterException {
+    return (new TwitterCommand<User>() {
+      @Override
+      public User fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().showUserListMembership(listId, userId);
+      }
+    }).getResponse(EndPoint.LISTS_MEMBERS_SHOW);
+  }
+
+  @Override
+  public <T> User fetchUserListMembership(final T ident, final String slug, final long userId) throws TwitterException {
+    return (new TwitterCommand<User>() {
+      @Override
+      public User fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().showUserListMembership((String) ident, slug, userId);
+        } else if (ident instanceof Long) {
+          return twitter.list().showUserListMembership((Long) ident, slug, userId);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_MEMBERS_SHOW);
+  }
+
+  @Override
+  public PagableResponseList<User> getUserListMembers(final long listId, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().getUserListMembers(listId, cursor);
+      }
+    }).getResponse(EndPoint.LISTS_MEMBERS);
+  }
+
+  @Override
+  public <T> PagableResponseList<User> fetchUserListMembers(final T ident, final String slug, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<User>>() {
+      @Override
+      public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().getUserListMembers((String) ident, slug, cursor);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserListMembers((Long) ident, slug, cursor);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_MEMBERS);
+  }
+
+  @Override
+  public UserList showUserList(final long listId) throws TwitterException {
+    return (new TwitterCommand<UserList>() {
+      @Override
+      public UserList fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.list().showUserList(listId);
+      }
+    }).getResponse(EndPoint.LISTS_SHOW);
+  }
+
+  @Override
+  public <T> UserList fetchUserList(final T ident, final String slug) throws TwitterException {
+    return (new TwitterCommand<UserList>() {
+      @Override
+      public UserList fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().showUserList((String) ident, slug);
+        } else if (ident instanceof Long) {
+          return twitter.list().showUserList((Long) ident, slug);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_SHOW);
+  }
+
+  /*
+   * TODO: Twitter4J Missing getUserListSubscriptions(long userId, cursor...)
+   */
+
+  @Override
+  public <T> PagableResponseList<UserList> fetchUserListSubscriptions(final T ident, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<UserList>>() {
+      @Override
+      public PagableResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.getUserListSubscriptions((String) ident, cursor);
+        } else if (ident instanceof Long) {
+          throw new IllegalArgumentException();
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_SUBSCRIPTIONS);
+  }
+
+  @Override
+  public <T> PagableResponseList<UserList> fetchUserListsOwnerships(final T ident, final int count, final long cursor) throws TwitterException {
+    return (new TwitterCommand<PagableResponseList<UserList>>() {
+      @Override
+      public PagableResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
+        if (ident instanceof String) {
+          return twitter.list().getUserListsOwnerships((String) ident, count, cursor);
+        } else if (ident instanceof Long) {
+          return twitter.list().getUserListsOwnerships((Long) ident, count, cursor);
+        } else {
+          throw new IllegalArgumentException();
+        }
+      }
+    }).getResponse(EndPoint.LISTS_OWNERSHIPS);
+  }
+
+  /*
+   * PlacesGeoResources
+   */
+
+  @Override
+  public Place getGeoDetails(final String placeId) throws TwitterException {
+    return (new TwitterCommand<Place>() {
+      @Override
+      public Place fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.placesGeo().getGeoDetails(placeId);
+      }
+    }).getResponse(EndPoint.GEO_ID);
+  }
+
+  @Override
+  public ResponseList<Place> reverseGeoCode(final GeoQuery query) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Place>>() {
+      @Override
+      public ResponseList<Place> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.placesGeo().reverseGeoCode(query);
+      }
+    }).getResponse(EndPoint.GEO_REVERSE_GEOCODE);
+  }
+
+  @Override
+  public ResponseList<Place> searchPlaces(final GeoQuery query) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Place>>() {
+      @Override
+      public ResponseList<Place> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.placesGeo().searchPlaces(query);
+      }
+    }).getResponse(EndPoint.GEO_SEARCH);
+  }
+
+  @Override
+  public ResponseList<Place>
+      getSimilarPlaces(final GeoLocation location, final String name, final String containedWithin, final String streetAddress) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Place>>() {
+      @Override
+      public ResponseList<Place> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.placesGeo().getSimilarPlaces(location, name, containedWithin, streetAddress);
+      }
+    }).getResponse(EndPoint.GEO_SIMILAR_PLACES);
+  }
+
+  /*
+   * TrendsResources
+   */
+
+  @Override
+  public Trends getPlaceTrends(final int woeid) throws TwitterException {
+    return (new TwitterCommand<Trends>() {
+      @Override
+      public Trends fetchResponse(final Twitter twitter) throws TwitterException {
+
+        return twitter.trends().getPlaceTrends(woeid);
+      }
+    }).getResponse(EndPoint.TRENDS_PLACE);
+  }
+
+  @Override
+  public ResponseList<Location> getAvailableTrends() throws TwitterException {
+    return (new TwitterCommand<ResponseList<Location>>() {
+      @Override
+      public ResponseList<Location> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.trends().getAvailableTrends();
+      }
+    }).getResponse(EndPoint.TRENDS_AVAILABLE);
+  }
+
+  @Override
+  public ResponseList<Location> getClosestTrends(final GeoLocation location) throws TwitterException {
+    return (new TwitterCommand<ResponseList<Location>>() {
+      @Override
+      public ResponseList<Location> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.trends().getClosestTrends(location);
+      }
+    }).getResponse(EndPoint.TRENDS_CLOSEST);
+  }
+
+  /*
+   * HelpResources
+   */
+
+  @Override
+  public Map<String, RateLimitStatus> getRateLimitStatus(final String... resources) throws TwitterException {
+    EndPoint[] endpoints = new EndPoint[resources.length];
+    for (int i = 0; i < resources.length; i++) {
+      endpoints[i] = EndPoint.fromString(resources[i]);
+    }
+    return getRateLimitStatus(endpoints);
+  }
+
+  @Override
+  public Map<String, RateLimitStatus> getRateLimitStatus() throws TwitterException {
+    return getRateLimitStatus(EndPoint.values());
+  }
+
+  /*
+   * Get combined Rate Limit for an endpoint (or several)
+   */
+  public Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint[] endpoints) {
+    Map<String, RateLimitStatus> rateLimits = new HashMap<>();
+    for (EndPoint target : endpoints) {
+      rateLimits.putAll(getRateLimitStatus(target));
+    }
+    return rateLimits;
+  }
+
+  /*
+   * Get Combined Rate Limit from all available bots
+   */
+  public Map<String, RateLimitStatus> getRateLimitStatus(final EndPoint endpoint) {
+    Map<String, RateLimitStatus> rateLimit = new HashMap<>();
+    InternalRateLimitStatus rl = new InternalRateLimitStatus();
+    Set<TwitterBot> allActiveBots = endpoint.getBotQueue().getLoadedBots();
+    for (TwitterBot bot : allActiveBots) {
+      rl = rl.mergeWith(bot.getCachedRateLimitStatus());
+    }
+    rateLimit.put(endpoint.toString(), rl);
+    return rateLimit;
+  }
+
+  /*
+   * All other unimplemented methods will throw UnsupportedMethodException
+   */
 }
