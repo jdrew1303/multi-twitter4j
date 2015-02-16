@@ -11,6 +11,8 @@ import twitter4j.TwitterResponse;
  */
 public class TwitterObjects {
 
+  public static final String TWITTER_DATE_FORMAT = "EEE MMM d HH:mm:ss Z yyyy";
+
   public static long[] toPrimitive(final Long[] array) {
     if (array == null) {
       return null;
