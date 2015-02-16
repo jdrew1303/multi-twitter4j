@@ -2,14 +2,20 @@ package org.insight.twitter.wrapper;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.List;
+
+import org.insight.twitter.util.TwitterObjects;
 
 import twitter4j.AccountSettings;
 import twitter4j.Friendship;
+import twitter4j.GeoLocation;
+import twitter4j.GeoQuery;
 import twitter4j.IDs;
 import twitter4j.OEmbed;
 import twitter4j.OEmbedRequest;
 import twitter4j.PagableResponseList;
 import twitter4j.Paging;
+import twitter4j.Query;
 import twitter4j.Relationship;
 import twitter4j.ResponseList;
 import twitter4j.Status;
@@ -32,26 +38,28 @@ import twitter4j.api.UsersResources;
 
 /*
  * Selected Methods from twitter4J Twitter interface. Unsupported methods throw exceptions.
+ * 
+ * Partially implemented: FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, Not Implemented: For Authenticating Users Only:
+ * SpamReportingResource, SavedSearchesResources, SuggestedUsersResources, DirectMessagesResources, OAuthSupport, OAuth2Support, TwitterBase, Rate Limits Are
+ * Handled internally: HelpResources
  */
 public abstract class TwitterResources implements TimelinesResources, TweetsResources, SearchResource, FriendsFollowersResources, UsersResources,
-// ** Partially implemented:
-    FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources,
-    // ** Not Implemented: For Authenticating Users Only:
-    // SpamReportingResource,
-    // SavedSearchesResources,
-    // SuggestedUsersResources,
-    // DirectMessagesResources,
-    // OAuthSupport,
-    // OAuth2Support,
-    // TwitterBase
-    // ** Rate Limits Are Handled internally:
-    HelpResources {
+    FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, HelpResources, JSONResources, CursorResources {
 
   private static final String UNSUPPORTED_METHOD = "This API call cannot be distributed between bots!";
 
   /*
    * Interfaces
    */
+
+  public JSONResources json() {
+    return this;
+  }
+
+  public CursorResources cursor() {
+    return this;
+  }
+
   public TimelinesResources timelines() {
     return this;
   }
@@ -92,6 +100,247 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
     return this;
   }
 
+
+  /*
+   * Bulk Request Methods:
+   */
+
+  /*
+   * Timelines:
+   */
+
+  @Override
+  public <T, K> List<K> getBulkUserTimeline(As type, T ident, long initSinceId) throws TwitterException {
+    return getBulkUserTimeline(type, ident, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkUserTimeline(As type, T ident) throws TwitterException {
+    return getBulkUserTimeline(type, ident, -1, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserTimeline(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
+    return getBulkUserTimeline(As.POJO, ident, initSinceId, initMaxId, maxElements);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserTimeline(T ident, long initSinceId) throws TwitterException {
+    return getBulkUserTimeline(As.POJO, ident, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserTimeline(T ident) throws TwitterException {
+    return getBulkUserTimeline(As.POJO, ident, -1, -1, -1);
+  }
+
+  // Favorites Timelines:
+
+  @Override
+  public <T, K> List<K> getBulkFavorites(As type, T ident, long initSinceId) throws TwitterException {
+    return getBulkFavorites(type, ident, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkFavorites(As type, T ident) throws TwitterException {
+    return getBulkFavorites(type, ident, -1, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkFavorites(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
+    return getBulkFavorites(As.POJO, ident, initSinceId, initMaxId, maxElements);
+  }
+
+  @Override
+  public <T> List<Status> getBulkFavorites(T ident, long initSinceId) throws TwitterException {
+    return getBulkFavorites(As.POJO, ident, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkFavorites(T ident) throws TwitterException {
+    return getBulkFavorites(As.POJO, ident, -1, -1, -1);
+  }
+
+  // List Timelines:
+
+  @Override
+  public <T, K> List<K> getBulkUserListStatuses(As type, T ident, String slug, long initSinceId) throws TwitterException {
+    return getBulkUserListStatuses(type, ident, slug, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkUserListStatuses(As type, T ident, String slug) throws TwitterException {
+    return getBulkUserListStatuses(type, ident, slug, -1, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserListStatuses(T ident, String slug, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
+    return getBulkUserListStatuses(As.POJO, ident, slug, initSinceId, initMaxId, maxElements);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserListStatuses(T ident, String slug, long initSinceId) throws TwitterException {
+    return getBulkUserListStatuses(As.POJO, ident, slug, initSinceId, -1, -1);
+  }
+
+  @Override
+  public <T> List<Status> getBulkUserListStatuses(T ident, String slug) throws TwitterException {
+    return getBulkUserListStatuses(As.POJO, ident, slug, -1, -1, -1);
+  }
+
+  /*
+   * Tweets
+   */
+
+  @Override
+  public List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException {
+    return getBulkRetweeterIds(statusId, -1);
+  }
+
+  /*
+   * FriendsFollowers
+   */
+
+  @Override
+  public <T> List<Long> getBulkFriendsIDs(T ident) throws TwitterException {
+    return getBulkFriendsIDs(ident, -1);
+  }
+
+  @Override
+  public <T> List<Long> getBulkFollowersIDs(T ident) throws TwitterException {
+    return getBulkFollowersIDs(ident, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkFriendsList(As type, final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return getBulkFriendsList(type, ident, -1, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkFriendsList(As type, final T ident) throws TwitterException {
+    return getBulkFriendsList(type, ident, -1, false, true);
+  }
+
+  @Override
+  public <T> List<User> getBulkFriendsList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException {
+    return getBulkFriendsList(As.POJO, ident, maxElements, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T> List<User> getBulkFriendsList(final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return getBulkFriendsList(As.POJO, ident, -1, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T> List<User> getBulkFriendsList(final T ident) throws TwitterException {
+    return getBulkFriendsList(As.POJO, ident, -1, false, true);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkFollowersList(As type, final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return getBulkFollowersList(type, ident, -1, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkFollowersList(As type, final T ident) throws TwitterException {
+    return getBulkFollowersList(type, ident, -1, false, true);
+  }
+
+  @Override
+  public <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException {
+    return getBulkFollowersList(As.POJO, ident, maxElements, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T> List<User> getBulkFollowersList(final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+    return getBulkFollowersList(As.POJO, ident, -1, skipStatus, includeUserEntities);
+  }
+
+  @Override
+  public <T> List<User> getBulkFollowersList(final T ident) throws TwitterException {
+    return getBulkFollowersList(As.POJO, ident, -1, false, true);
+  }
+
+  /*
+   * Lists:
+   */
+
+  @Override
+  public <T, K> List<K> getBulkUserListMemberships(As type, T ident) throws TwitterException {
+    return getBulkUserListMemberships(type, ident, -1);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListMemberships(T ident, int maxElements) throws TwitterException {
+    return getBulkUserListMemberships(As.POJO, ident, maxElements);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListMemberships(T ident) throws TwitterException {
+    return getBulkUserListMemberships(As.POJO, ident, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkUserListSubscribers(As type, T ident, String slug) throws TwitterException {
+    return getBulkUserListSubscribers(type, ident, slug, -1);
+  }
+
+  @Override
+  public <T> List<User> getBulkUserListSubscribers(T ident, String slug, int maxElements) throws TwitterException {
+    return getBulkUserListSubscribers(As.POJO, ident, slug, maxElements);
+  }
+
+  @Override
+  public <T> List<User> getBulkUserListSubscribers(T ident, String slug) throws TwitterException {
+    return getBulkUserListSubscribers(As.POJO, ident, slug, -1);
+  }
+
+  @Override
+  public <K> List<K> getBulkUserListMembers(As type, long listId) throws TwitterException {
+    return getBulkUserListMembers(type, listId, -1);
+  }
+
+  @Override
+  public List<User> getBulkUserListMembers(long listId, int maxElements) throws TwitterException {
+    return getBulkUserListMembers(As.POJO, listId, maxElements);
+  }
+
+  @Override
+  public List<User> getBulkUserListMembers(long listId) throws TwitterException {
+    return getBulkUserListMembers(As.POJO, listId, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkUserListSubscriptions(As type, T ident) throws TwitterException {
+    return getBulkUserListSubscriptions(type, ident, -1);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListSubscriptions(T ident, int maxElements) throws TwitterException {
+    return getBulkUserListSubscriptions(As.POJO, ident, maxElements);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListSubscriptions(T ident) throws TwitterException {
+    return getBulkUserListSubscriptions(As.POJO, ident, -1);
+  }
+
+  @Override
+  public <T, K> List<K> getBulkUserListsOwnerships(As type, T ident) throws TwitterException {
+    return getBulkUserListsOwnerships(type, ident, -1);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListsOwnerships(T ident, int maxElements) throws TwitterException {
+    return getBulkUserListsOwnerships(As.POJO, ident, maxElements);
+  }
+
+  @Override
+  public <T> List<UserList> getBulkUserListsOwnerships(T ident) throws TwitterException {
+    return getBulkUserListsOwnerships(As.POJO, ident, -1);
+  }
 
   /*
    * TimelinesResources
@@ -303,7 +552,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    * @see #getFriendsList(String, long)
    */
   public abstract <T> PagableResponseList<User> fetchFriendsList(final T ident, final long cursor, final int count, final boolean skipStatus,
-                                                                 final boolean includeUserEntities) throws TwitterException;
+      final boolean includeUserEntities) throws TwitterException;
 
   @Override
   public PagableResponseList<User> getFriendsList(final long userId, final long cursor) throws TwitterException {
@@ -317,7 +566,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   public PagableResponseList<User> getFriendsList(final long userId, final long cursor, final int count, final boolean skipStatus,
-                                                  final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return fetchFriendsList(userId, cursor, count, skipStatus, includeUserEntities);
   }
 
@@ -333,7 +582,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   public PagableResponseList<User> getFriendsList(final String screenName, final long cursor, final int count, final boolean skipStatus,
-                                                  final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return fetchFriendsList(screenName, cursor, count, skipStatus, includeUserEntities);
   }
 
@@ -342,7 +591,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    * @see #getFollowersList(String, long)
    */
   public abstract <T> PagableResponseList<User> fetchFollowersList(final T ident, final long cursor, final int count, final boolean skipStatus,
-                                                                   final boolean includeUserEntities) throws TwitterException;
+      final boolean includeUserEntities) throws TwitterException;
 
   @Override
   public PagableResponseList<User> getFollowersList(final long userId, final long cursor) throws TwitterException {
@@ -356,7 +605,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   public PagableResponseList<User> getFollowersList(final long userId, final long cursor, final int count, final boolean skipStatus,
-                                                    final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return fetchFollowersList(userId, cursor, count, skipStatus, includeUserEntities);
   }
 
@@ -372,7 +621,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   public PagableResponseList<User> getFollowersList(final String screenName, final long cursor, final int count, final boolean skipStatus,
-                                                    final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return fetchFollowersList(screenName, cursor, count, skipStatus, includeUserEntities);
   }
 
@@ -553,7 +802,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public AccountSettings updateAccountSettings(final Integer trendLocationWoeid, final Boolean sleepTimeEnabled, final String startSleepTime,
-                                               final String endSleepTime, final String timeZone, final String lang) throws TwitterException {
+      final String endSleepTime, final String timeZone, final String lang) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
@@ -578,7 +827,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public User updateProfileColors(final String profileBackgroundColor, final String profileTextColor, final String profileLinkColor,
-                                  final String profileSidebarFillColor, final String profileSidebarBorderColor) throws TwitterException {
+      final String profileSidebarFillColor, final String profileSidebarBorderColor) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
@@ -922,15 +1171,15 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   @Deprecated
-  public PagableResponseList<UserList>
-      getUserListMemberships(final String listMemberScreenName, final long cursor, final boolean filterToOwnedLists) throws TwitterException {
+  public PagableResponseList<UserList> getUserListMemberships(final String listMemberScreenName, final long cursor, final boolean filterToOwnedLists)
+      throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public PagableResponseList<UserList>
-      getUserListMemberships(final long listMemberId, final long cursor, final boolean filterToOwnedLists) throws TwitterException {
+  public PagableResponseList<UserList> getUserListMemberships(final long listMemberId, final long cursor, final boolean filterToOwnedLists)
+      throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
@@ -1092,17 +1341,15 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   @Deprecated
-  public
-      UserList
-      updateUserList(final long ownerId, final String slug, final String newListName, final boolean isPublicList, final String newDescription)
-                                                                                                                                              throws TwitterException {
+  public UserList updateUserList(final long ownerId, final String slug, final String newListName, final boolean isPublicList, final String newDescription)
+      throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public UserList updateUserList(final String ownerScreenName, final String slug, final String newListName, final boolean isPublicList,
-                                 final String newDescription) throws TwitterException {
+      final String newDescription) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
@@ -1156,6 +1403,810 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Deprecated
   public String getTermsOfService() throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
+  }
+
+  /*
+   * Wrap TwitterResources methods to access original JSON from Twitter.
+   */
+
+  /*
+   * TimelinesResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserTimeline()
+   */
+  @Override
+  public <T> List<String> fetchUserTimeline(As json, final T ident, final Paging paging) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserTimeline(ident, paging));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserTimeline(String)
+   */
+  @Override
+  public List<String> getUserTimeline(As json, final String screenName) throws TwitterException {
+    return fetchUserTimeline(json, screenName, new Paging());
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserTimeline(String, Paging)
+   */
+  @Override
+  public List<String> getUserTimeline(As json, final String screenName, final Paging paging) throws TwitterException {
+    return fetchUserTimeline(json, screenName, paging);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserTimeline(long)
+   */
+  @Override
+  public List<String> getUserTimeline(As json, final long userId) throws TwitterException {
+    return fetchUserTimeline(json, userId, new Paging());
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserTimeline(long, Paging)
+   */
+  @Override
+  public List<String> getUserTimeline(As json, final long userId, final Paging paging) throws TwitterException {
+    return fetchUserTimeline(json, userId, paging);
+  }
+
+  /*
+   * TweetsResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getRetweets()
+   */
+  @Override
+  public List<String> getRetweets(As json, final long statusId) throws TwitterException {
+    return TwitterObjects.getJSONList(getRetweets(statusId));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getRetweeterIds()
+   */
+  @Override
+  public String getRetweeterIds(As json, final long statusId, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSON(getRetweeterIds(statusId, 100, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getRetweeterIds()
+   */
+  @Override
+  public String getRetweeterIds(As json, final long statusId, final int count, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSON(getRetweeterIds(statusId, count, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showStatus(long)
+   */
+  @Override
+  public String showStatus(As json, final long id) throws TwitterException {
+    return TwitterObjects.getJSON(showStatus(id));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#lookup(long[])
+   */
+  @Override
+  public List<String> lookup(As json, final long[] ids) throws TwitterException {
+    return TwitterObjects.getJSONList(lookup(ids));
+  }
+
+  /*
+   * SearchResource
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#search()
+   */
+  @Override
+  public String search(As json, final Query query) throws TwitterException {
+    return TwitterObjects.getJSON(search(query));
+  }
+
+  /*
+   * FriendsFollowersResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchFriendsIDs()
+   */
+  @Override
+  public <T> String fetchFriendsIDs(As json, final T ident, final long cursor, final int count) throws TwitterException {
+    return TwitterObjects.getJSON(fetchFriendsIDs(ident, cursor, count));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsIDs()
+   */
+  @Override
+  public String getFriendsIDs(As json, final long userId, final long cursor) throws TwitterException {
+    return fetchFriendsIDs(json, userId, cursor, 5000);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsIDs()
+   */
+  @Override
+  public String getFriendsIDs(As json, final long userId, final long cursor, final int count) throws TwitterException {
+    return fetchFriendsIDs(json, userId, cursor, count);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsIDs()
+   */
+  @Override
+  public String getFriendsIDs(As json, final String screenName, final long cursor) throws TwitterException {
+    return fetchFriendsIDs(json, screenName, cursor, 5000);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsIDs()
+   */
+  @Override
+  public String getFriendsIDs(As json, final String screenName, final long cursor, final int count) throws TwitterException {
+    return fetchFriendsIDs(json, screenName, cursor, count);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchFollowersIDs()
+   */
+  @Override
+  public <T> String fetchFollowersIDs(As json, final T ident, final long cursor, final int count) throws TwitterException {
+    return TwitterObjects.getJSON(fetchFollowersIDs(ident, cursor, count));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersIDs()
+   */
+  @Override
+  public String getFollowersIDs(As json, final long userId, final long cursor) throws TwitterException {
+    return fetchFollowersIDs(json, userId, cursor, 5000);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersIDs()
+   */
+  @Override
+  public String getFollowersIDs(As json, final long userId, final long cursor, final int count) throws TwitterException {
+    return fetchFollowersIDs(json, userId, cursor, count);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersIDs()
+   */
+  @Override
+  public String getFollowersIDs(As json, final String screenName, final long cursor) throws TwitterException {
+    return fetchFollowersIDs(json, screenName, cursor, 5000);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersIDs()
+   */
+  @Override
+  public String getFollowersIDs(As json, final String screenName, final long cursor, final int count) throws TwitterException {
+    return fetchFollowersIDs(json, screenName, cursor, count);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchFriendship()
+   */
+  @Override
+  public <T> String fetchFriendship(As json, final T sourceIdent, final T targetIdent) throws TwitterException {
+    return TwitterObjects.getJSON(fetchFriendship(sourceIdent, targetIdent));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showFriendship()
+   */
+  @Override
+  public String showFriendship(As json, final long sourceId, final long targetId) throws TwitterException {
+    return fetchFriendship(json, sourceId, targetId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showFriendship()
+   */
+  @Override
+  public String showFriendship(As json, final String sourceScreenName, final String targetScreenName) throws TwitterException {
+    return fetchFriendship(json, sourceScreenName, targetScreenName);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchFriendsList()
+   */
+  @Override
+  public <T> List<String> fetchFriendsList(As json, final T ident, final long cursor, final int count, final boolean skipStatus,
+      final boolean includeUserEntities) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchFriendsList(ident, cursor, count, skipStatus, includeUserEntities));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final long userId, final long cursor) throws TwitterException {
+    return fetchFriendsList(json, userId, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final long userId, final long cursor, final int count) throws TwitterException {
+    return fetchFriendsList(json, userId, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final long userId, final long cursor, final int count, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException {
+    return fetchFriendsList(json, userId, cursor, count, skipStatus, includeUserEntities);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final String screenName, final long cursor) throws TwitterException {
+    return fetchFriendsList(json, screenName, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final String screenName, final long cursor, final int count) throws TwitterException {
+    return fetchFriendsList(json, screenName, cursor, count, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFriendsList()
+   */
+  @Override
+  public List<String> getFriendsList(As json, final String screenName, final long cursor, final int count, final boolean skipStatus,
+      final boolean includeUserEntities) throws TwitterException {
+    return fetchFriendsList(json, screenName, cursor, count, skipStatus, includeUserEntities);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public <T> List<String> fetchFollowersList(As json, final T ident, final long cursor, final int count, final boolean skipStatus,
+      final boolean includeUserEntities) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchFollowersList(ident, cursor, count, skipStatus, includeUserEntities));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final long userId, final long cursor) throws TwitterException {
+    return fetchFollowersList(json, userId, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final long userId, final long cursor, final int count) throws TwitterException {
+    return fetchFollowersList(json, userId, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final long userId, final long cursor, final int count, final boolean skipStatus,
+      final boolean includeUserEntities) throws TwitterException {
+    return fetchFollowersList(json, userId, cursor, count, skipStatus, includeUserEntities);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final String screenName, final long cursor) throws TwitterException {
+    return fetchFollowersList(json, screenName, cursor, 200, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final String screenName, final long cursor, final int count) throws TwitterException {
+    return fetchFollowersList(json, screenName, cursor, count, false, true);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFollowersList()
+   */
+  @Override
+  public List<String> getFollowersList(As json, final String screenName, final long cursor, final int count, final boolean skipStatus,
+      final boolean includeUserEntities) throws TwitterException {
+    return fetchFollowersList(json, screenName, cursor, count, skipStatus, includeUserEntities);
+  }
+
+  /*
+   * UsersResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchLookupUsers()
+   */
+  @Override
+  public <T> List<String> fetchLookupUsers(As json, final T idents) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchLookupUsers(idents));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#lookupUsers()
+   */
+  @Override
+  public List<String> lookupUsers(As json, final long[] ids) throws TwitterException {
+    return fetchLookupUsers(json, ids);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#lookupUsers()
+   */
+  @Override
+  public List<String> lookupUsers(As json, final String[] screenNames) throws TwitterException {
+    return fetchLookupUsers(json, screenNames);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUser()
+   */
+  @Override
+  public <T> String fetchUser(As json, final T ident) throws TwitterException {
+    return TwitterObjects.getJSON(fetchUser(ident));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUser()
+   */
+  @Override
+  public String showUser(As json, final long userId) throws TwitterException {
+    return fetchUser(json, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUser()
+   */
+  @Override
+  public String showUser(As json, final String screenName) throws TwitterException {
+    return fetchUser(json, screenName);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#searchUsers()
+   */
+  @Override
+  public List<String> searchUsers(As json, final String query, final int page) throws TwitterException {
+    return TwitterObjects.getJSONList(searchUsers(query, page));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchContributees()
+   */
+  @Override
+  public <T> List<String> fetchContributees(As json, final T ident) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchContributees(ident));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getContributees()
+   */
+  @Override
+  public List<String> getContributees(As json, final long userId) throws TwitterException {
+    return fetchContributees(json, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getContributees()
+   */
+  @Override
+  public List<String> getContributees(As json, final String screenName) throws TwitterException {
+    return fetchContributees(json, screenName);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchContributors()
+   */
+  @Override
+  public <T> List<String> fetchContributors(As json, final T ident) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchContributees(ident));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getContributors()
+   */
+  @Override
+  public List<String> getContributors(As json, final long userId) throws TwitterException {
+    return fetchContributors(json, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getContributors()
+   */
+  @Override
+  public List<String> getContributors(As json, final String screenName) throws TwitterException {
+    return fetchContributors(json, screenName);
+  }
+
+  /*
+   * FavoritesResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchFavorites()
+   */
+  @Override
+  public <T> List<String> fetchFavorites(As json, final T ident, final Paging paging) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchFavorites(ident, paging));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFavorites()
+   */
+  @Override
+  public List<String> getFavorites(As json, final long userId) throws TwitterException {
+    return fetchFavorites(json, userId, new Paging());
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFavorites()
+   */
+  @Override
+  public List<String> getFavorites(As json, final long userId, final Paging paging) throws TwitterException {
+    return fetchFavorites(json, userId, paging);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFavorites()
+   */
+  @Override
+  public List<String> getFavorites(As json, final String screenName) throws TwitterException {
+    return fetchFavorites(json, screenName, new Paging());
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getFavorites()
+   */
+  @Override
+  public List<String> getFavorites(As json, final String screenName, final Paging paging) throws TwitterException {
+    return fetchFavorites(json, screenName, paging);
+  }
+
+  /*
+   * ListsResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserLists()
+   */
+  @Override
+  public <T> List<String> fetchUserLists(As json, final T ident) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserLists(ident));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserLists()
+   */
+  @Override
+  public List<String> getUserLists(As json, final String listOwnerScreenName) throws TwitterException {
+    return fetchUserLists(json, listOwnerScreenName);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserLists()
+   */
+  @Override
+  public List<String> getUserLists(As json, final long listOwnerUserId) throws TwitterException {
+    return fetchUserLists(json, listOwnerUserId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListStatuses()
+   */
+  @Override
+  public List<String> getUserListStatuses(As json, final long listId, final Paging paging) throws TwitterException {
+    return TwitterObjects.getJSONList(getUserListStatuses(listId, paging));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListStatuses()
+   */
+  @Override
+  public <T> List<String> fetchUserListStatuses(As json, final T ident, final String slug, final Paging paging) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListStatuses(ident, slug, paging));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListStatuses()
+   */
+  @Override
+  public List<String> getUserListStatuses(As json, final long ownerId, final String slug, final Paging paging) throws TwitterException {
+    return fetchUserListStatuses(json, ownerId, slug, paging);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListStatuses()
+   */
+  @Override
+  public List<String> getUserListStatuses(As json, final String ownerScreenName, final String slug, final Paging paging) throws TwitterException {
+    return fetchUserListStatuses(json, ownerScreenName, slug, paging);
+  }
+
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListMemberships()
+   */
+  @Override
+  public <T> List<String> fetchUserListMemberships(As json, final T ident, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListMemberships(ident, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListMemberships()
+   */
+  @Override
+  public List<String> getUserListMemberships(As json, final long listMemberId, final long cursor) throws TwitterException {
+    return fetchUserListMemberships(json, listMemberId, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListMemberships()
+   */
+  @Override
+  public List<String> getUserListMemberships(As json, final String listMemberScreenName, final long cursor) throws TwitterException {
+    return fetchUserListMemberships(json, listMemberScreenName, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListSubscribers()
+   */
+  @Override
+  public List<String> getUserListSubscribers(As json, final long listId, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(getUserListSubscribers(listId, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListSubscribers()
+   */
+  @Override
+  public <T> List<String> fetchUserListSubscribers(As json, final T ident, final String slug, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListSubscribers(ident, slug, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListSubscribers()
+   */
+  @Override
+  public List<String> getUserListSubscribers(As json, final long ownerId, final String slug, final long cursor) throws TwitterException {
+    return fetchUserListSubscribers(json, ownerId, slug, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListSubscribers()
+   */
+  @Override
+  public List<String> getUserListSubscribers(As json, final String ownerScreenName, final String slug, final long cursor) throws TwitterException {
+    return fetchUserListSubscribers(json, ownerScreenName, slug, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListSubscription()
+   */
+  @Override
+  public <T> String fetchUserListSubscription(As json, final T ident, final String slug, final long userId) throws TwitterException {
+    return TwitterObjects.getJSON(fetchUserListSubscription(ident, slug, userId));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserListSubscription()
+   */
+  @Override
+  public String showUserListSubscription(As json, final long ownerId, final String slug, final long userId) throws TwitterException {
+    return fetchUserListSubscription(json, ownerId, slug, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserListSubscription()
+   */
+  @Override
+  public String showUserListSubscription(As json, final String ownerScreenName, final String slug, final long userId) throws TwitterException {
+    return fetchUserListSubscription(json, ownerScreenName, slug, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListMembership()
+   */
+  @Override
+  public <T> String fetchUserListMembership(As json, final T ident, final String slug, final long userId) throws TwitterException {
+    return TwitterObjects.getJSON(fetchUserListMembership(ident, slug, userId));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserListMembership()
+   */
+  @Override
+  public String showUserListMembership(As json, final long ownerId, final String slug, final long userId) throws TwitterException {
+    return fetchUserListMembership(json, ownerId, slug, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserListMembership()
+   */
+  @Override
+  public String showUserListMembership(As json, final String ownerScreenName, final String slug, final long userId) throws TwitterException {
+    return fetchUserListMembership(json, ownerScreenName, slug, userId);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListMembers()
+   */
+  @Override
+  public <T> List<String> fetchUserListMembers(As json, final T ident, final String slug, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListMembers(ident, slug, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListMembers()
+   */
+  @Override
+  public List<String> getUserListMembers(As json, final long ownerId, final String slug, final long cursor) throws TwitterException {
+    return fetchUserListMembers(json, ownerId, slug, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListMembers()
+   */
+  @Override
+  public List<String> getUserListMembers(As json, final String ownerScreenName, final String slug, final long cursor) throws TwitterException {
+    return fetchUserListMembers(json, ownerScreenName, slug, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserList()
+   */
+  @Override
+  public <T> String fetchUserList(As json, final T ident, final String slug) throws TwitterException {
+    return TwitterObjects.getJSON(fetchUserList(ident, slug));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserList()
+   */
+  @Override
+  public String showUserList(As json, final long ownerId, final String slug) throws TwitterException {
+    return fetchUserList(json, ownerId, slug);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#showUserList()
+   */
+  @Override
+  public String showUserList(As json, final String ownerScreenName, final String slug) throws TwitterException {
+    return fetchUserList(json, ownerScreenName, slug);
+  }
+
+  /*
+   * TODO: Twitter4J Missing getUserListSubscriptions(long userId, cursor...)
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#()
+   */
+  @Override
+  public <T> List<String> fetchUserListSubscriptions(As json, final T ident, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListSubscriptions(ident, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListSubscriptions()
+   */
+  @Override
+  public List<String> getUserListSubscriptions(As json, final String listOwnerScreenName, final long cursor) throws TwitterException {
+    return fetchUserListSubscriptions(json, listOwnerScreenName, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#fetchUserListsOwnerships()
+   */
+  @Override
+  public <T> List<String> fetchUserListsOwnerships(As json, final T ident, final int count, final long cursor) throws TwitterException {
+    return TwitterObjects.getJSONList(fetchUserListsOwnerships(ident, count, cursor));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListsOwnerships()
+   */
+  @Override
+  public List<String> getUserListsOwnerships(As json, final String listOwnerScreenName, final int count, final long cursor) throws TwitterException {
+    return fetchUserListsOwnerships(json, listOwnerScreenName, count, cursor);
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getUserListsOwnerships()
+   */
+  @Override
+  public List<String> getUserListsOwnerships(As json, final long listOwnerId, final int count, final long cursor) throws TwitterException {
+    return fetchUserListsOwnerships(json, listOwnerId, count, cursor);
+  }
+
+  /*
+   * PlacesGeoResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getGeoDetails()
+   */
+  @Override
+  public String getGeoDetails(As json, final String placeId) throws TwitterException {
+    return TwitterObjects.getJSON(getGeoDetails(placeId));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#reverseGeoCode()
+   */
+  @Override
+  public List<String> reverseGeoCode(As json, final GeoQuery query) throws TwitterException {
+    return TwitterObjects.getJSONList(reverseGeoCode(query));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#searchPlaces()
+   */
+  @Override
+  public List<String> searchPlaces(As json, final GeoQuery query) throws TwitterException {
+    return TwitterObjects.getJSONList(searchPlaces(query));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getSimilarPlaces()
+   */
+  @Override
+  public List<String> getSimilarPlaces(As json, final GeoLocation location, final String name, final String containedWithin, final String streetAddress)
+      throws TwitterException {
+    return TwitterObjects.getJSONList(getSimilarPlaces(location, name, containedWithin, streetAddress));
+  }
+
+  /*
+   * TrendsResources
+   */
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getPlaceTrends(int)
+   */
+  @Override
+  public String getPlaceTrends(As json, final int woeid) throws TwitterException {
+    return TwitterObjects.getJSON(getPlaceTrends(woeid));
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getAvailableTrends()
+   */
+  @Override
+  public String getAvailableTrends(As json) throws TwitterException {
+    return TwitterObjects.getJSON(getAvailableTrends());
+  }
+
+  /**
+   * @see org.insight.twitter.wrapper.TwitterResources#getClosestTrends(GeoLocation)
+   */
+  @Override
+  public String getClosestTrends(As json, final GeoLocation location) throws TwitterException {
+    return TwitterObjects.getJSON(getClosestTrends(location));
   }
 
 }

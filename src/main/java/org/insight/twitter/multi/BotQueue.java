@@ -1,4 +1,4 @@
-package org.insight.twitter.internal;
+package org.insight.twitter.multi;
 
 import java.util.Collections;
 import java.util.Date;

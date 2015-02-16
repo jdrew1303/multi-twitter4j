@@ -4,9 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,11 +13,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.insight.twitter.internal.EndPoint;
-import org.insight.twitter.internal.InternalRateLimitStatus;
-import org.insight.twitter.internal.TwitterBot;
-import org.insight.twitter.internal.Util;
-import org.insight.twitter.wrapper.TwitterJSONResources;
+import org.insight.twitter.multi.EndPoint;
+import org.insight.twitter.multi.InternalRateLimitStatus;
+import org.insight.twitter.multi.TwitterBot;
+import org.insight.twitter.util.TwitterCursor;
+import org.insight.twitter.util.TwitterObjects;
+import org.insight.twitter.util.TwitterPage;
+import org.insight.twitter.wrapper.TwitterResources;
 
 import twitter4j.CursorSupport;
 import twitter4j.GeoLocation;
@@ -39,18 +38,17 @@ import twitter4j.Status;
 import twitter4j.Trends;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
-import twitter4j.TwitterResponse;
 import twitter4j.User;
 import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- * 
+ *
  * Should be straight forward to add unimplemented methods, if you really need them.
- * 
+ *
  * All unimplemented methods will throw UnsupportedMethodException
  */
-public class MultiTwitter extends TwitterJSONResources {
+public class MultiTwitter extends TwitterResources {
 
   private final Set<String> configuredBots;
   private final boolean useBlockingQueue;
@@ -110,13 +108,10 @@ public class MultiTwitter extends TwitterJSONResources {
    * Taking bots from Queue:
    */
   private TwitterBot takeBot(final EndPoint endpoint) throws TwitterException {
-    // Either Block with take() until a bot is available, or throw rate
-    // limit exception:
+    // Either Block with take() until a bot is available, or throw rate limit exception:
     // Lazy load bots to endpoints:
     endpoint.getBotQueue().reloadConfiguredBots(configuredBots);
-
     TwitterBot bot = useBlockingQueue ? endpoint.getBotQueue().take() : endpoint.getBotQueue().poll();
-
     if (bot == null) {
       throw new TwitterException(endpoint + " Queue is EMPTY! Rate Limit for all Bots Reached!");
     }
@@ -157,7 +152,7 @@ public class MultiTwitter extends TwitterJSONResources {
            * Skip retrying Private / Deleted / Banned accounts
            */
           if (e.resourceNotFound() || (e.getStatusCode() == 401)) {
-            System.out.println("Resource not found / Unauthorized, Giving Up.");
+            System.out.println("Resource Not Found / Unauthorized, Giving Up.");
             throw e;
           }
           System.out.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
@@ -174,195 +169,66 @@ public class MultiTwitter extends TwitterJSONResources {
     public abstract K fetchResponse(final Twitter twitter) throws TwitterException;
   }
 
-  /*
-   * Page Through Results with Cursors:
-   */
-  public abstract class TwitterCursor<K> {
-    @SuppressWarnings("unchecked")
-    public List<K> getElements(As type, final int maxElements) throws TwitterException {
-      final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
-      List<K> elements = new ArrayList<>();
-      long cursor = -1;
-      try {
-        while (cursor != 0) {
-          CursorSupport pg = pageResponse(cursor);
-          if (type.equals(As.POJO)) {
-            elements.addAll(processElements(pg));
-          } else if (type.equals(As.JSON)) {
-            elements.addAll((Collection<? extends K>) processElements(type, pg));
-          }
-          // Limit check:
-          if (elements.size() >= limit) {
-            break;
-          }
-          cursor = pg.getNextCursor();
-        }
-        return elements;
-      } catch (TwitterException e) {
-        throw e;
-      }
-    }
 
-    /*
-     * Get a cursored page of results from somewhere:
-     */
-    public abstract CursorSupport pageResponse(long cursor) throws TwitterException;
 
-    /*
-     * Do something with elements on page:
-     * By default, add all elements to list:
-     */
-    @SuppressWarnings("unchecked")
-    public List<K> processElements(CursorSupport page) throws TwitterException {
-      List<K> elements = new ArrayList<>();
-      elements.addAll((List<K>) page);
-      return elements;
-    }
-
-    /*
-     * By default, add json to List:
-     */
-    @SuppressWarnings("unchecked")
-    public List<String> processElements(As json, CursorSupport page) throws TwitterException {
-      List<String> elements = new ArrayList<>();
-      elements.addAll(getJSONList((List<? extends TwitterResponse>) page));
-      return elements;
-    }
-  }
-
-  /*
-   * Page Through Results with "Pages" - timelines etc:
-   */
-  // TODO:
-
-  public abstract class TwitterPage<K> {
-
-  }
+  // T: String (screen_name) or Long (user_id)
+  // K: POJO (T4J) or String (JSON)
 
   /*
    * ========================================================================
-   * Bulk Request Methods: Paging through results, avoiding cursors etc. 
+   * Bulk Request Methods: Paging through results, avoiding cursors etc.
    * ========================================================================
    */
 
-  // as POJO (Specify K) or JSON (K = String):
-
   /*
-   * Timelines
+   * Timelines:
    */
-
-  // TODO: (Better Paging)
-  public List<Status> getUserTimelineJSON(final long userId, final Date oldest_created_at) {
-
-    List<Status> timeline = new ArrayList<>();
-
-    Paging paging = new Paging();
-    paging.count(200);
-
-    int ctweets = 0;
-
-    boolean datelimit = false;
-
-    while ((ctweets < 3200) && !datelimit) {
-
-      try {
-        ResponseList<Status> page = getUserTimeline(userId, paging);
-
-        Collection<Long> lowestID = new ArrayList<>();
-        for (Status s : page) {
-          lowestID.add(s.getId());
-
-          if (s.getCreatedAt().compareTo(oldest_created_at) < 0) {
-            // System.out.println("Date Limit!");
-            datelimit = true;
-            continue;
-          }
-
-          timeline.add(s);
-        }
-
-        System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
-
-        if (lowestID.size() < 1) {
-          break;
-        }
-
-        // Max ID is the lowest ID tweet you have already processed
-        paging.setMaxId((Collections.min(lowestID) - 1));
-        // pg.setSinceId(sinceId);
-
-        ctweets = ctweets + page.size();
-
-      } catch (TwitterException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
-        break;
+  @Override
+  public <T, K> List<K> getBulkUserTimeline(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements)
+      throws TwitterException {
+    return (new TwitterPage<K>() {
+      @Override
+      public List<Status> pageResponse(Paging page) throws TwitterException {
+        return fetchUserTimeline(ident, page);
       }
-
-    }
-
-    return timeline;
+    }).getElements(type, initSinceId, initMaxId, maxElements);
   }
 
-  public List<Status> getUpdateUserTimeline(final long userId, final long sinceId) {
-
-    List<Status> timeline = new ArrayList<>();
-
-    Paging paging = new Paging();
-    paging.count(200);
-    paging.setSinceId(sinceId);
-
-    int ctweets = 0;
-
-    while (ctweets < 3200) {
-
-      try {
-        ResponseList<Status> page = getUserTimeline(userId, paging);
-
-        Collection<Long> lowestID = new ArrayList<>();
-        for (Status s : page) {
-          lowestID.add(s.getId());
-          timeline.add(s);
-        }
-
-        System.out.println(userId + " Fetched: " + lowestID.size() + ":" + ctweets + " tweets");
-
-        if (lowestID.size() < 1) {
-          break;
-        }
-
-        // Max ID is the lowest ID tweet you have already processed
-        paging.setMaxId((Collections.min(lowestID) - 1));
-        paging.setSinceId(sinceId);
-
-        ctweets = ctweets + page.size();
-
-      } catch (TwitterException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        System.err.println("FAILED TO RETRIEVE TIMELINE FOR USER: " + userId);
-        break;
+  @Override
+  public <T, K> List<K> getBulkFavorites(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException {
+    return (new TwitterPage<K>() {
+      @Override
+      public List<Status> pageResponse(Paging page) throws TwitterException {
+        return fetchFavorites(ident, page);
       }
+    }).getElements(type, initSinceId, initMaxId, maxElements);
+  }
 
-    }
-
-    return timeline;
+  @Override
+  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements)
+      throws TwitterException {
+    return (new TwitterPage<K>() {
+      @Override
+      public List<Status> pageResponse(Paging page) throws TwitterException {
+        return fetchUserListStatuses(ident, slug, page);
+      }
+    }).getElements(type, initSinceId, initMaxId, maxElements);
   }
 
   /*
-   * Tweets
+   * Tweets:
    */
 
+  @Override
   public List<Long> getBulkRetweeterIds(final long statusId, final int maxElements) throws TwitterException {
     return (new TwitterCursor<Long>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return getRetweeterIds(statusId, 200, cursor);
       }
 
       @Override
-      public List<Long> processElements(CursorSupport page) throws TwitterException {
+      public List<Long> processElements(As type, CursorSupport page) throws TwitterException {
         List<Long> retweeterIDs = new ArrayList<>();
         for (Long l : ((IDs) page).getIDs()) {
           retweeterIDs.add(l);
@@ -383,16 +249,16 @@ public class MultiTwitter extends TwitterJSONResources {
   /*
    * FriendsFollowers
    */
-
+  @Override
   public <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException {
     return (new TwitterCursor<Long>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchFriendsIDs(ident, cursor, 5000);
       }
 
       @Override
-      public List<Long> processElements(CursorSupport page) throws TwitterException {
+      public List<Long> processElements(As type, CursorSupport page) throws TwitterException {
         List<Long> friends = new ArrayList<>();
         for (Long l : ((IDs) page).getIDs()) {
           friends.add(l);
@@ -402,15 +268,16 @@ public class MultiTwitter extends TwitterJSONResources {
     }).getElements(As.POJO, maxElements);
   }
 
+  @Override
   public <T> List<Long> getBulkFollowersIDs(final T ident, final int maxElements) throws TwitterException {
     return (new TwitterCursor<Long>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchFollowersIDs(ident, cursor, 5000);
       }
 
       @Override
-      public List<Long> processElements(CursorSupport page) throws TwitterException {
+      public List<Long> processElements(As type, CursorSupport page) throws TwitterException {
         List<Long> followers = new ArrayList<>();
         for (Long l : ((IDs) page).getIDs()) {
           followers.add(l);
@@ -420,21 +287,23 @@ public class MultiTwitter extends TwitterJSONResources {
     }).getElements(As.POJO, maxElements);
   }
 
-  public <T, K> List<K>
-      getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+  @Override
+  public <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchFriendsList(ident, cursor, 200, skipStatus, includeUserEntities);
       }
     }).getElements(type, maxElements);
   }
 
-  public <T, K> List<K>
-      getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException {
+  @Override
+  public <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchFollowersList(ident, cursor, 200, skipStatus, includeUserEntities);
       }
     }).getElements(type, maxElements);
@@ -447,57 +316,53 @@ public class MultiTwitter extends TwitterJSONResources {
   // TODO
 
   /*
-   * FavoritesResources
-   */
-
-  // TODO
-
-  /*
    * ListsResources
    */
-
-  // TODO: getUserListStatuses()... Paging
-
+  @Override
   public <T, K> List<K> getBulkUserListMemberships(As type, final T ident, int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchUserListMemberships(ident, cursor);
       }
     }).getElements(type, maxElements);
   }
 
+  @Override
   public <T, K> List<K> getBulkUserListSubscribers(As type, final T ident, final String slug, int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchUserListSubscribers(ident, slug, cursor);
       }
     }).getElements(type, maxElements);
   }
 
+  @Override
   public <K> List<K> getBulkUserListMembers(As type, final long listId, final int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return getUserListMembers(listId, cursor);
       }
     }).getElements(type, maxElements);
   }
 
+  @Override
   public <T, K> List<K> getBulkUserListSubscriptions(As type, final T ident, int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchUserListSubscriptions(ident, cursor);
       }
     }).getElements(type, maxElements);
   }
 
+  @Override
   public <T, K> List<K> getBulkUserListsOwnerships(As type, final T ident, int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
       @Override
-      public CursorSupport pageResponse(long cursor) throws TwitterException {
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
         return fetchUserListsOwnerships(ident, 1000, cursor);
       }
     }).getElements(type, maxElements);
@@ -628,9 +493,9 @@ public class MultiTwitter extends TwitterJSONResources {
     return (new TwitterCommand<Relationship>() {
       @Override
       public Relationship fetchResponse(final Twitter twitter) throws TwitterException {
-        if (sourceIdent instanceof String && targetIdent instanceof String) {
+        if ((sourceIdent instanceof String) && (targetIdent instanceof String)) {
           return twitter.friendsFollowers().showFriendship((String) sourceIdent, (String) targetIdent);
-        } else if (sourceIdent instanceof Long && targetIdent instanceof Long) {
+        } else if ((sourceIdent instanceof Long) && (targetIdent instanceof Long)) {
           return twitter.friendsFollowers().showFriendship((Long) sourceIdent, (Long) targetIdent);
         } else {
           throw new IllegalArgumentException();
@@ -641,7 +506,7 @@ public class MultiTwitter extends TwitterJSONResources {
 
   @Override
   public <T> PagableResponseList<User> fetchFriendsList(final T ident, final long cursor, final int count, final boolean skipStatus,
-                                                        final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
@@ -658,7 +523,7 @@ public class MultiTwitter extends TwitterJSONResources {
 
   @Override
   public <T> PagableResponseList<User> fetchFollowersList(final T ident, final long cursor, final int count, final boolean skipStatus,
-                                                          final boolean includeUserEntities) throws TwitterException {
+      final boolean includeUserEntities) throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
@@ -677,6 +542,7 @@ public class MultiTwitter extends TwitterJSONResources {
    * UsersResources
    */
 
+  @Override
   public <T> ResponseList<User> fetchLookupUsers(final T idents) throws TwitterException {
     return (new TwitterCommand<ResponseList<User>>() {
       @Override
@@ -685,7 +551,7 @@ public class MultiTwitter extends TwitterJSONResources {
         if (idents instanceof String[]) {
           return twitter.users().lookupUsers((String[]) idents);
         } else if (idents instanceof Long[]) {
-          return twitter.users().lookupUsers(Util.toPrimitive((Long[]) idents));
+          return twitter.users().lookupUsers(TwitterObjects.toPrimitive((Long[]) idents));
         } else {
           throw new IllegalArgumentException();
         }
@@ -710,7 +576,7 @@ public class MultiTwitter extends TwitterJSONResources {
   }
 
   /*
-   * TODO: T4J Missing Paging or Cursor???
+   * TODO: Bulk Request - Max per page = 20, max results 1000
    */
   @Override
   public ResponseList<User> searchUsers(final String query, final int page) throws TwitterException {
@@ -1038,8 +904,8 @@ public class MultiTwitter extends TwitterJSONResources {
   }
 
   @Override
-  public ResponseList<Place>
-      getSimilarPlaces(final GeoLocation location, final String name, final String containedWithin, final String streetAddress) throws TwitterException {
+  public ResponseList<Place> getSimilarPlaces(final GeoLocation location, final String name, final String containedWithin, final String streetAddress)
+      throws TwitterException {
     return (new TwitterCommand<ResponseList<Place>>() {
       @Override
       public ResponseList<Place> fetchResponse(final Twitter twitter) throws TwitterException {

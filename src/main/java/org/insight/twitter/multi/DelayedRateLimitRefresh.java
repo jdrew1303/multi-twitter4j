@@ -1,4 +1,4 @@
-package org.insight.twitter.internal;
+package org.insight.twitter.multi;
 
 /*
  * Add a Bot to a queue (used with Scheduler)
