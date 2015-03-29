@@ -1405,6 +1405,12 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
+  @Override
+  @Deprecated
+  public UploadedMedia uploadMedia(String fileName, InputStream media) throws TwitterException {
+    throw new TwitterException(UNSUPPORTED_METHOD);
+  }
+
   /*
    * Wrap TwitterResources methods to access original JSON from Twitter.
    */
