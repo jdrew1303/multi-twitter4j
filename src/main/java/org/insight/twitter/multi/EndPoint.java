@@ -1,7 +1,7 @@
 package org.insight.twitter.multi;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /*
  * Container for different Endpoint Names, and priority queues. Uses Enum Singleton pattern because we only want 1 global instance of each endpoint+bot. As far
@@ -288,12 +288,12 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 
   /*
    * Define new Endpoints in the same way: RESOURCE_ENDPOINT {
-   * 
+   *
    * @Override public String toString() { return "/resource/endpoint"; } }
    */
 
   // Make a queue for each endpoint:
-  private static final Map<String, BotQueue> BOT_QUEUES = new HashMap<>();
+  private static final Map<String, BotQueue> BOT_QUEUES = new ConcurrentHashMap<>();
 
   static {
     for (EndPoint endpoint : EndPoint.values()) {
