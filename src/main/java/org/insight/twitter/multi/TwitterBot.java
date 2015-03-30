@@ -66,7 +66,6 @@ public final class TwitterBot implements Comparable<TwitterBot> {
 
   public void refreshRateLimit() {
     RateLimitStatus newRateLimitStatus = new InternalRateLimitStatus();
-
     try {
       // Make a smaller request for the endpoint family only:
       String endpointFamily = endpoint.toString().split("/")[1];
@@ -81,7 +80,6 @@ public final class TwitterBot implements Comparable<TwitterBot> {
       System.err.println(ident + " Error Refreshing Ratelimit for: " + endpoint + "  " + newRateLimitStatus.getRemaining());
       e.printStackTrace();
     }
-
     this.cachedRateLimit = newRateLimitStatus;
   }
 
@@ -91,7 +89,7 @@ public final class TwitterBot implements Comparable<TwitterBot> {
   }
 
   // Don't use this instance to request anything other than the designated Endpoint.
-  // Only Use NewMultiTwitter! Rate limit Listener will fail otherwise:
+  // Only Use MultiTwitter! Rate limit Listener will fail otherwise:
   public final Twitter getTwitter() {
     return this.t4jConnection;
   }

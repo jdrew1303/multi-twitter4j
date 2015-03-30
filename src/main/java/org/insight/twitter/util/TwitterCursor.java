@@ -41,8 +41,9 @@ public abstract class TwitterCursor<K> {
   public List<K> processElements(As type, CursorSupport page) throws TwitterException {
     if (type.equals(As.JSON)) {
       return (List<K>) TwitterObjects.getJSONList((List<? extends TwitterResponse>) page);
+    } else {
+      return (List<K>) page;
     }
-    return (List<K>) page;
   }
 
   /*

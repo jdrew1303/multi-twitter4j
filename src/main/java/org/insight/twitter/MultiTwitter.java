@@ -675,7 +675,6 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCommand<ResponseList<Status>>() {
       @Override
       public ResponseList<Status> fetchResponse(final Twitter twitter) throws TwitterException {
-
         if (ident instanceof String) {
           return twitter.list().getUserListStatuses((String) ident, slug, paging);
         } else if (ident instanceof Long) {
@@ -923,7 +922,6 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCommand<Trends>() {
       @Override
       public Trends fetchResponse(final Twitter twitter) throws TwitterException {
-
         return twitter.trends().getPlaceTrends(woeid);
       }
     }).getResponse(EndPoint.TRENDS_PLACE);
