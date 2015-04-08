@@ -107,7 +107,7 @@ public interface CursorResources {
 
   public <T> List<User> getBulkFollowersList(final T ident) throws TwitterException;
 
-  /* 
+  /*
    * Lists
    */
 
@@ -154,5 +154,19 @@ public interface CursorResources {
   public <T> List<UserList> getBulkUserListsOwnerships(final T ident, int maxElements) throws TwitterException;
 
   public <T> List<UserList> getBulkUserListsOwnerships(final T ident) throws TwitterException;
+
+  /*
+   * Search
+   */
+
+  // Impl:
+  public <K> List<K> getBulkSearchUsers(As type, final String query, int maxElements) throws TwitterException;
+
+  public <K> List<K> getBulkSearchUsers(As type, final String query) throws TwitterException;
+
+  public List<User> getBulkSearchUsers(final String query, int maxElements) throws TwitterException;
+
+  public List<User> getBulkSearchUsers(final String query) throws TwitterException;
+
 
 }

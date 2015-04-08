@@ -343,6 +343,25 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
   /*
+   * Search
+   */
+
+  @Override
+  public <K> List<K> getBulkSearchUsers(As type, final String query) throws TwitterException {
+    return getBulkSearchUsers(type, query, -1);
+  }
+
+  @Override
+  public List<User> getBulkSearchUsers(final String query, int maxElements) throws TwitterException {
+    return getBulkSearchUsers(As.POJO, query, maxElements);
+  }
+
+  @Override
+  public List<User> getBulkSearchUsers(final String query) throws TwitterException {
+    return getBulkSearchUsers(As.POJO, query, -1);
+  }
+
+  /*
    * TimelinesResources
    */
 

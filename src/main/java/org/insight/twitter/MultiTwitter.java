@@ -143,19 +143,21 @@ public class MultiTwitter extends TwitterResources {
           break;
         } catch (TwitterException e) {
           if (e.exceededRateLimitation() || e.isCausedByNetworkIssue()) {
+            System.err.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
             if (--retryLimit <= 0) {
-              System.out.println("Retried " + configuredBots.size() + " times, giving up.");
+              System.err.println("Retried " + configuredBots.size() + " times, giving up.");
               throw e;
             }
-          }
-          /*
-           * Skip retrying Private / Deleted / Banned accounts
-           */
-          if (e.resourceNotFound() || (e.getStatusCode() == 401)) {
-            System.out.println("Resource Not Found / Unauthorized, Giving Up.");
+          } else if (e.resourceNotFound() || (e.getStatusCode() == 401)) {
+            /*
+             * Skip retrying Private / Deleted / Banned accounts
+             */
+            System.err.println("Resource Not Found / Unauthorized, Giving Up.");
+            throw e;
+          } else {
+            System.err.println("Request Refused, Giving Up.");
             throw e;
           }
-          System.out.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
         } finally {
           releaseBot(bot);
         }
@@ -313,7 +315,27 @@ public class MultiTwitter extends TwitterResources {
    * Users
    */
 
-  // TODO
+  // Awkwardly doesn't implement Paging or Cursors: Max Per page: 20, Max Results 1000.
+  @Override
+  public <K> List<K> getBulkSearchUsers(final As type, final String query, int maxElements) throws TwitterException {
+    ;
+    return (new TwitterCursor<K>() {
+      @Override
+      public CursorSupport cursorResponse(long cursor) throws TwitterException {
+        return null; // Cursor Not Implemented
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public List<K> manualPageResponse(int page) throws TwitterException {
+        if (type.equals(As.JSON)) {
+          return (List<K>) searchUsers(As.JSON, query, page);
+        } else {
+          return (List<K>) searchUsers(query, page);
+        }
+      }
+    }).getManualPageElements(query, maxElements);
+  }
 
   /*
    * ListsResources
@@ -452,6 +474,16 @@ public class MultiTwitter extends TwitterResources {
     }).getResponse(EndPoint.SEARCH_TWEETS);
   }
 
+  @Override
+  public ResponseList<User> searchUsers(final String query, final int page) throws TwitterException {
+    return (new TwitterCommand<ResponseList<User>>() {
+      @Override
+      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
+        return twitter.users().searchUsers(query, page);
+      }
+    }).getResponse(EndPoint.USERS_SEARCH);
+  }
+
   /*
    * FriendsFollowersResources
    */
@@ -573,19 +605,6 @@ public class MultiTwitter extends TwitterResources {
         }
       }
     }).getResponse(EndPoint.USERS_SHOW);
-  }
-
-  /*
-   * TODO: Bulk Request - Max per page = 20, max results 1000
-   */
-  @Override
-  public ResponseList<User> searchUsers(final String query, final int page) throws TwitterException {
-    return (new TwitterCommand<ResponseList<User>>() {
-      @Override
-      public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
-        return twitter.users().searchUsers(query, page);
-      }
-    }).getResponse(EndPoint.USERS_SEARCH);
   }
 
   @Override
