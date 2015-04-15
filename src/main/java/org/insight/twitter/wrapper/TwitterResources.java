@@ -38,7 +38,7 @@ import twitter4j.api.UsersResources;
 
 /*
  * Selected Methods from twitter4J Twitter interface. Unsupported methods throw exceptions.
- * 
+ *
  * Partially implemented: FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, Not Implemented: For Authenticating Users Only:
  * SpamReportingResource, SavedSearchesResources, SuggestedUsersResources, DirectMessagesResources, OAuthSupport, OAuth2Support, TwitterBase, Rate Limits Are
  * Handled internally: HelpResources
@@ -360,6 +360,22 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   public List<User> getBulkSearchUsers(final String query) throws TwitterException {
     return getBulkSearchUsers(As.POJO, query, -1);
   }
+
+  @Override
+  public <K> List<K> getBulkSearchResults(final As type, final Query query) throws TwitterException {
+    return getBulkSearchResults(type, query, -1);
+  }
+
+  @Override
+  public List<User> getBulkSearchResults(final Query query, int maxElements) throws TwitterException {
+    return getBulkSearchResults(As.POJO, query, maxElements);
+  }
+
+  @Override
+  public List<User> getBulkSearchResults(final Query query) throws TwitterException {
+    return getBulkSearchResults(As.POJO, query, -1);
+  }
+
 
   /*
    * TimelinesResources

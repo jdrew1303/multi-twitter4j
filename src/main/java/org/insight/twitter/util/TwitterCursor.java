@@ -1,9 +1,7 @@
 package org.insight.twitter.util;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.insight.twitter.wrapper.JSONResources.As;
 
@@ -15,6 +13,15 @@ import twitter4j.TwitterResponse;
  * Page Through Results with Cursors:
  */
 public abstract class TwitterCursor<K> {
+
+  /*
+   * Get a CursorSupport page of results from somewhere:
+   */
+  public abstract CursorSupport cursorResponse(long cursor) throws TwitterException;
+
+  /*
+   * Keep track of cursors
+   */
   public List<K> getElements(As type, final int maxElements) throws TwitterException {
     final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
     List<K> elements = new ArrayList<>();
@@ -48,45 +55,4 @@ public abstract class TwitterCursor<K> {
     }
   }
 
-  /*
-   * Get a CursorSupport page of results from somewhere:
-   */
-  public abstract CursorSupport cursorResponse(long cursor) throws TwitterException;
-
-
-
-  /*
-   * This is just for users/search - the only endpoint that doesn't do cursors or Paging...
-   */
-  public List<K> getManualPageElements(final String query, final int maxElements) throws TwitterException {
-    final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
-    List<K> elements = new ArrayList<>();
-    // Stopping Conditions: No more Results, Returning same result twice.
-    Set<K> lastResult = new HashSet<K>();
-    try {
-      for (int page = 1; page < 50; page++) {
-
-        List<K> pg = manualPageResponse(page);
-        //System.out.println("Got " + pg.size() + "results..");
-        // Stop Search Check:
-        if (lastResult.containsAll(pg)) {
-          //System.out.println("Got same results, stop.");
-          break;
-        }
-        lastResult = new HashSet<K>(pg);
-        elements.addAll(pg);
-        // Limit check:
-        if (elements.size() >= limit) {
-          break;
-        }
-      }
-      return elements;
-    } catch (TwitterException e) {
-      throw e;
-    }
-  }
-
-  public List<K> manualPageResponse(int page) throws TwitterException {
-    return null;
-  }
 }

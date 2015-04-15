@@ -4,11 +4,15 @@ import java.util.List;
 
 import org.insight.twitter.wrapper.JSONResources.As;
 
+import twitter4j.Query;
 import twitter4j.Status;
 import twitter4j.TwitterException;
 import twitter4j.User;
 import twitter4j.UserList;
 
+/*
+ * Bulk Requests - Hide Paging, cursors etc.
+ */
 public interface CursorResources {
 
   /*
@@ -167,6 +171,15 @@ public interface CursorResources {
   public List<User> getBulkSearchUsers(final String query, int maxElements) throws TwitterException;
 
   public List<User> getBulkSearchUsers(final String query) throws TwitterException;
+
+
+  public <K> List<K> getBulkSearchResults(final As type, final Query query, int maxElements) throws TwitterException;
+
+  public <K> List<K> getBulkSearchResults(final As type, final Query query) throws TwitterException;
+
+  public List<User> getBulkSearchResults(final Query query, int maxElements) throws TwitterException;
+
+  public List<User> getBulkSearchResults(final Query query) throws TwitterException;
 
 
 }

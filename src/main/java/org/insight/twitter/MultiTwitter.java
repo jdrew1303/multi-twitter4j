@@ -19,6 +19,7 @@ import org.insight.twitter.multi.TwitterBot;
 import org.insight.twitter.util.TwitterCursor;
 import org.insight.twitter.util.TwitterObjects;
 import org.insight.twitter.util.TwitterPage;
+import org.insight.twitter.util.TwitterQueryPage;
 import org.insight.twitter.wrapper.TwitterResources;
 
 import twitter4j.CursorSupport;
@@ -130,6 +131,9 @@ public class MultiTwitter extends TwitterResources {
   /*
    * Wrap Responses from Twitter, Retry on failures, throw appropriate
    * Exceptions. This provides retry functions to any method.
+   *
+   * <T> String (screen_name) or Long (user_id)
+   * <K> Twitter4J Object (As.POJO) or String (As.JSON)
    */
   public abstract class TwitterCommand<K> {
     public K getResponse(final EndPoint endpoint) throws TwitterException {
@@ -170,11 +174,6 @@ public class MultiTwitter extends TwitterResources {
      */
     public abstract K fetchResponse(final Twitter twitter) throws TwitterException;
   }
-
-
-
-  // T: String (screen_name) or Long (user_id)
-  // K: POJO (T4J) or String (JSON)
 
   /*
    * ========================================================================
@@ -243,12 +242,6 @@ public class MultiTwitter extends TwitterResources {
   // TODO: lookup() Wrapper that uses both lookup() and show()
 
   /*
-   * Search
-   */
-
-  // TODO:
-
-  /*
    * FriendsFollowers
    */
   @Override
@@ -312,19 +305,28 @@ public class MultiTwitter extends TwitterResources {
   }
 
   /*
+   * Search
+   */
+
+  @Override
+  public <K> List<K> getBulkSearchResults(final As type, final Query query, int maxElements) throws TwitterException {
+    return (new TwitterQueryPage<K>() {
+      @Override
+      public QueryResult pageResponse(Query query) throws TwitterException {
+        return search(query);
+      }
+    }).getElements(type, query, maxElements);
+  }
+
+
+  /*
    * Users
    */
 
   // Awkwardly doesn't implement Paging or Cursors: Max Per page: 20, Max Results 1000.
   @Override
   public <K> List<K> getBulkSearchUsers(final As type, final String query, int maxElements) throws TwitterException {
-    ;
-    return (new TwitterCursor<K>() {
-      @Override
-      public CursorSupport cursorResponse(long cursor) throws TwitterException {
-        return null; // Cursor Not Implemented
-      }
-
+    return (new TwitterPage<K>() {
       @SuppressWarnings("unchecked")
       @Override
       public List<K> manualPageResponse(int page) throws TwitterException {
@@ -334,12 +336,18 @@ public class MultiTwitter extends TwitterResources {
           return (List<K>) searchUsers(query, page);
         }
       }
+
+      @Override
+      public List<Status> pageResponse(Paging page) throws TwitterException {
+        return null;
+      }
     }).getManualPageElements(query, maxElements);
   }
 
   /*
    * ListsResources
    */
+
   @Override
   public <T, K> List<K> getBulkUserListMemberships(As type, final T ident, int maxElements) throws TwitterException {
     return (new TwitterCursor<K>() {
