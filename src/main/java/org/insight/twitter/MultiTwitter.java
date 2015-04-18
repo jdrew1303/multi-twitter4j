@@ -44,9 +44,9 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- *
+ * 
  * Should be straight forward to add unimplemented methods, if you really need them.
- *
+ * 
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources {
@@ -147,6 +147,9 @@ public class MultiTwitter extends TwitterResources {
           break;
         } catch (TwitterException e) {
           if (e.exceededRateLimitation() || e.isCausedByNetworkIssue()) {
+            if (bot != null) {
+              System.err.println("ERROR: bot: " + bot.toString() + " Limit:" + bot.getCachedRateLimitStatus().toString());
+            }
             System.err.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
             if (--retryLimit <= 0) {
               System.err.println("Retried " + configuredBots.size() + " times, giving up.");
@@ -587,9 +590,10 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCommand<ResponseList<User>>() {
       @Override
       public ResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
-
         if (idents instanceof String[]) {
           return twitter.users().lookupUsers((String[]) idents);
+        } else if (idents instanceof long[]) {
+          return twitter.users().lookupUsers((long[]) idents);
         } else if (idents instanceof Long[]) {
           return twitter.users().lookupUsers(TwitterObjects.toPrimitive((Long[]) idents));
         } else {

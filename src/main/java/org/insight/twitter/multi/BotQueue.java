@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 import twitter4j.TwitterException;
 
 /*
- * An extended PriorityBlockingQueue for Twitter bots - manages Queue of bots, puts them to sleep if needed. At most, 1 BotQueue per endpoint! - Slower, but more
- * robust and reliable with Twitter.
+ * An extended PriorityBlockingQueue for Twitter bots - manages Queue of bots, puts them to sleep if needed. At most, 1 BotQueue per endpoint! - Slower, but
+ * more robust and reliable with Twitter.
  */
 
 @SuppressWarnings("serial")
@@ -34,8 +34,10 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
     // Prevent Duplicates During Reloads:
     if (!super.contains(e)) {
       loadedBots.add(e);
+      System.out.println("return " + endpoint + " bot: " + e.getConfig() + " " + e.getCachedRateLimitStatus().toString());
       return super.offer(e);
     } else {
+      System.out.println("ERROR RETURNING " + endpoint + " bot: " + e.getConfig() + " " + e.getCachedRateLimitStatus().toString());
       return false;
     }
   }
@@ -69,7 +71,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
         e.printStackTrace();
       }
     } while (checkNext(bot));
-
+    System.out.println("take " + endpoint + " bot: " + bot.getConfig() + " " + bot.getCachedRateLimitStatus().toString());
     return bot;
   }
 
