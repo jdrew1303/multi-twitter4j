@@ -44,9 +44,9 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- * 
+ *
  * Should be straight forward to add unimplemented methods, if you really need them.
- * 
+ *
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources {
@@ -55,7 +55,7 @@ public class MultiTwitter extends TwitterResources {
   private final boolean useBlockingQueue;
 
   public MultiTwitter() {
-    this(true, "twitter4j.properties");
+    this(true, "/twitter4j.properties");
   }
 
   public MultiTwitter(final boolean blocking, final String configFile) {
@@ -146,12 +146,13 @@ public class MultiTwitter extends TwitterResources {
           result = fetchResponse(bot.getTwitter());
           break;
         } catch (TwitterException e) {
+          retryLimit--;
           if (e.exceededRateLimitation() || e.isCausedByNetworkIssue()) {
             if (bot != null) {
               System.err.println("ERROR: bot: " + bot.toString() + " Limit:" + bot.getCachedRateLimitStatus().toString());
             }
             System.err.println("Temporary Rate Limit / Connection Error!, Retrying " + retryLimit + " more times... " + e.toString());
-            if (--retryLimit <= 0) {
+            if (retryLimit <= 0) {
               System.err.println("Retried " + configuredBots.size() + " times, giving up.");
               throw e;
             }
@@ -334,7 +335,7 @@ public class MultiTwitter extends TwitterResources {
       @Override
       public List<K> manualPageResponse(int page) throws TwitterException {
         if (type.equals(As.JSON)) {
-          return (List<K>) searchUsers(As.JSON, query, page);
+          return (List<K>) searchUsersJSON(query, page);
         } else {
           return (List<K>) searchUsers(query, page);
         }
@@ -356,7 +357,7 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCursor<K>() {
       @Override
       public CursorSupport cursorResponse(long cursor) throws TwitterException {
-        return fetchUserListMemberships(ident, cursor);
+        return fetchUserListMemberships(ident, 1000, cursor);
       }
     }).getElements(type, maxElements);
   }
@@ -366,7 +367,7 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCursor<K>() {
       @Override
       public CursorSupport cursorResponse(long cursor) throws TwitterException {
-        return fetchUserListSubscribers(ident, slug, cursor);
+        return fetchUserListSubscribers(ident, slug, 5000, cursor, false);
       }
     }).getElements(type, maxElements);
   }
@@ -376,7 +377,7 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCursor<K>() {
       @Override
       public CursorSupport cursorResponse(long cursor) throws TwitterException {
-        return getUserListMembers(listId, cursor);
+        return getUserListMembers(listId, 5000, cursor);
       }
     }).getElements(type, maxElements);
   }
@@ -386,7 +387,7 @@ public class MultiTwitter extends TwitterResources {
     return (new TwitterCursor<K>() {
       @Override
       public CursorSupport cursorResponse(long cursor) throws TwitterException {
-        return fetchUserListSubscriptions(ident, cursor);
+        return fetchUserListSubscriptions(ident, 1000, cursor);
       }
     }).getElements(type, maxElements);
   }
@@ -676,14 +677,14 @@ public class MultiTwitter extends TwitterResources {
    */
 
   @Override
-  public <T> ResponseList<UserList> fetchUserLists(final T ident) throws TwitterException {
+  public <T> ResponseList<UserList> fetchUserLists(final T ident, boolean reverse) throws TwitterException {
     return (new TwitterCommand<ResponseList<UserList>>() {
       @Override
       public ResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
           return twitter.list().getUserLists((String) ident);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserLists((Long) ident);
+          return twitter.list().getUserLists((long) ident);
         } else {
           throw new IllegalArgumentException();
         }
@@ -709,7 +710,7 @@ public class MultiTwitter extends TwitterResources {
         if (ident instanceof String) {
           return twitter.list().getUserListStatuses((String) ident, slug, paging);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserListStatuses((Long) ident, slug, paging);
+          return twitter.list().getUserListStatuses((long) ident, slug, paging);
         } else {
           throw new IllegalArgumentException();
         }
@@ -718,14 +719,14 @@ public class MultiTwitter extends TwitterResources {
   }
 
   @Override
-  public <T> PagableResponseList<UserList> fetchUserListMemberships(final T ident, final long cursor) throws TwitterException {
+  public <T> PagableResponseList<UserList> fetchUserListMemberships(final T ident, final int count, final long cursor) throws TwitterException {
     return (new TwitterCommand<PagableResponseList<UserList>>() {
       @Override
       public PagableResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
-          return twitter.list().getUserListMemberships((String) ident, cursor);
+          return twitter.list().getUserListMemberships((String) ident, count, cursor);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserListMemberships((Long) ident, cursor);
+          return twitter.list().getUserListMemberships((Long) ident, count, cursor);
         } else {
           throw new IllegalArgumentException();
         }
@@ -734,24 +735,26 @@ public class MultiTwitter extends TwitterResources {
   }
 
   @Override
-  public PagableResponseList<User> getUserListSubscribers(final long listId, final long cursor) throws TwitterException {
+  public PagableResponseList<User> getUserListSubscribers(final long listId, final int count, final long cursor, final boolean skipStatus)
+      throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
-        return twitter.list().getUserListSubscribers(listId, cursor);
+        return twitter.list().getUserListSubscribers(listId, count, cursor, skipStatus);
       }
     }).getResponse(EndPoint.LISTS_SUBSCRIBERS);
   }
 
   @Override
-  public <T> PagableResponseList<User> fetchUserListSubscribers(final T ident, final String slug, final long cursor) throws TwitterException {
+  public <T> PagableResponseList<User> fetchUserListSubscribers(final T ident, final String slug, final int count, final long cursor, final boolean skipStatus)
+      throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
-          return twitter.list().getUserListSubscribers((String) ident, slug, cursor);
+          return twitter.list().getUserListSubscribers((String) ident, slug, count, cursor, skipStatus);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserListSubscribers((Long) ident, slug, cursor);
+          return twitter.list().getUserListSubscribers((Long) ident, slug, count, cursor, skipStatus);
         } else {
           throw new IllegalArgumentException();
         }
@@ -812,24 +815,25 @@ public class MultiTwitter extends TwitterResources {
   }
 
   @Override
-  public PagableResponseList<User> getUserListMembers(final long listId, final long cursor) throws TwitterException {
+  public PagableResponseList<User> getUserListMembers(final long listId, final int count, final long cursor, final boolean skipStatus) throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
-        return twitter.list().getUserListMembers(listId, cursor);
+        return twitter.list().getUserListMembers(listId, count, cursor, skipStatus);
       }
     }).getResponse(EndPoint.LISTS_MEMBERS);
   }
 
   @Override
-  public <T> PagableResponseList<User> fetchUserListMembers(final T ident, final String slug, final long cursor) throws TwitterException {
+  public <T> PagableResponseList<User> fetchUserListMembers(final T ident, final String slug, final int count, final long cursor, final boolean skipStatus)
+      throws TwitterException {
     return (new TwitterCommand<PagableResponseList<User>>() {
       @Override
       public PagableResponseList<User> fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
-          return twitter.list().getUserListMembers((String) ident, slug, cursor);
+          return twitter.list().getUserListMembers((String) ident, slug, count, cursor, skipStatus);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserListMembers((Long) ident, slug, cursor);
+          return twitter.list().getUserListMembers((Long) ident, slug, count, cursor, skipStatus);
         } else {
           throw new IllegalArgumentException();
         }
@@ -863,19 +867,15 @@ public class MultiTwitter extends TwitterResources {
     }).getResponse(EndPoint.LISTS_SHOW);
   }
 
-  /*
-   * TODO: Twitter4J Missing getUserListSubscriptions(long userId, cursor...)
-   */
-
   @Override
-  public <T> PagableResponseList<UserList> fetchUserListSubscriptions(final T ident, final long cursor) throws TwitterException {
+  public <T> PagableResponseList<UserList> fetchUserListSubscriptions(final T ident, final int count, final long cursor) throws TwitterException {
     return (new TwitterCommand<PagableResponseList<UserList>>() {
       @Override
       public PagableResponseList<UserList> fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
-          return twitter.getUserListSubscriptions((String) ident, cursor);
+          return twitter.getUserListSubscriptions((String) ident, count, cursor);
         } else if (ident instanceof Long) {
-          throw new IllegalArgumentException();
+          return twitter.getUserListSubscriptions((Long) ident, count, cursor);
         } else {
           throw new IllegalArgumentException();
         }

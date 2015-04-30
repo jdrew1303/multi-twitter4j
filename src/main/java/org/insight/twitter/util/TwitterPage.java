@@ -81,7 +81,6 @@ public abstract class TwitterPage<K> {
     Set<K> lastResult = new HashSet<K>();
     try {
       for (int page = 1; page < 50; page++) {
-
         List<K> pg = manualPageResponse(page);
         //System.out.println("Got " + pg.size() + "results..");
         // Stop Search Check:

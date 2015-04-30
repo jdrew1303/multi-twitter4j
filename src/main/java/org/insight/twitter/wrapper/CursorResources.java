@@ -19,101 +19,77 @@ public interface CursorResources {
    * Timelines
    */
 
-  public <T, K> List<K> getBulkUserTimeline(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements)
-      throws TwitterException;
-
-  public <T, K> List<K> getBulkUserTimeline(As type, final T ident, final long initSinceId) throws TwitterException;
+  public <T, K> List<K> getBulkUserTimeline(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
 
   public <T, K> List<K> getBulkUserTimeline(As type, final T ident) throws TwitterException;
 
   public <T> List<Status> getBulkUserTimeline(final T ident, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
 
-  public <T> List<Status> getBulkUserTimeline(final T ident, final long initSinceId) throws TwitterException;
-
   public <T> List<Status> getBulkUserTimeline(final T ident) throws TwitterException;
 
+  /*
+   * Favorites
+   */
 
   public <T, K> List<K> getBulkFavorites(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
-
-  public <T, K> List<K> getBulkFavorites(As type, final T ident, final long initSinceId) throws TwitterException;
 
   public <T, K> List<K> getBulkFavorites(As type, final T ident) throws TwitterException;
 
   public <T> List<Status> getBulkFavorites(final T ident, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
 
-  public <T> List<Status> getBulkFavorites(final T ident, final long initSinceId) throws TwitterException;
-
   public <T> List<Status> getBulkFavorites(final T ident) throws TwitterException;
-
-
-  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements)
-      throws TwitterException;
-
-  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId) throws TwitterException;
-
-  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug) throws TwitterException;
-
-  public <T> List<Status> getBulkUserListStatuses(final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements)
-      throws TwitterException;
-
-  public <T> List<Status> getBulkUserListStatuses(final T ident, final String slug, final long initSinceId) throws TwitterException;
-
-  public <T> List<Status> getBulkUserListStatuses(final T ident, final String slug) throws TwitterException;
 
   /*
    * Tweets
    */
 
-  public List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException;
-
   public List<Long> getBulkRetweeterIds(final long statusId, final int maxElements) throws TwitterException;
+  
+  public List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException;
 
   /*
    * FriendsFollowers
    */
 
-  public <T> List<Long> getBulkFriendsIDs(final T ident) throws TwitterException;
-
   public <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException;
 
-
-  public <T> List<Long> getBulkFollowersIDs(final T ident) throws TwitterException;
+  public <T> List<Long> getBulkFriendsIDs(final T ident) throws TwitterException;
+ 
 
   public <T> List<Long> getBulkFollowersIDs(final T ident, final int maxElements) throws TwitterException;
+  
+  public <T> List<Long> getBulkFollowersIDs(final T ident) throws TwitterException;
 
 
-  public <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
-
-  public <T, K> List<K> getBulkFriendsList(As type, final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  public <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
 
   public <T, K> List<K> getBulkFriendsList(As type, final T ident) throws TwitterException;
 
-  public <T> List<User> getBulkFriendsList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
-
-  public <T> List<User> getBulkFriendsList(final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  public <T> List<User> getBulkFriendsList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
 
   public <T> List<User> getBulkFriendsList(final T ident) throws TwitterException;
 
 
-  public <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
-
-  public <T, K> List<K> getBulkFollowersList(As type, final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  public <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
 
   public <T, K> List<K> getBulkFollowersList(As type, final T ident) throws TwitterException;
 
-  public <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
-
-  public <T> List<User> getBulkFollowersList(final T ident, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  public <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
 
   public <T> List<User> getBulkFollowersList(final T ident) throws TwitterException;
 
   /*
    * Lists
    */
+
+  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
+
+  public <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug) throws TwitterException;
+
+  public <T> List<Status> getBulkUserListStatuses(final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
+
+  public <T> List<Status> getBulkUserListStatuses(final T ident, final String slug) throws TwitterException;
+
 
   public <T, K> List<K> getBulkUserListMemberships(As type, final T ident, int maxElements) throws TwitterException;
 
@@ -163,7 +139,6 @@ public interface CursorResources {
    * Search
    */
 
-  // Impl:
   public <K> List<K> getBulkSearchUsers(As type, final String query, int maxElements) throws TwitterException;
 
   public <K> List<K> getBulkSearchUsers(As type, final String query) throws TwitterException;
