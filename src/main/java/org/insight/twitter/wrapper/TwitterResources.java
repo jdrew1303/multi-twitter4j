@@ -219,7 +219,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
 
-  // Bulk List Statuses  :
+  // Bulk List Statuses:
 
   @Override
   public abstract <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId,

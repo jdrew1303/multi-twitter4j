@@ -44,9 +44,9 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- *
+ * 
  * Should be straight forward to add unimplemented methods, if you really need them.
- *
+ * 
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources {
@@ -684,7 +684,7 @@ public class MultiTwitter extends TwitterResources {
         if (ident instanceof String) {
           return twitter.list().getUserLists((String) ident);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserLists((long) ident);
+          return twitter.list().getUserLists((Long) ident);
         } else {
           throw new IllegalArgumentException();
         }
@@ -710,7 +710,7 @@ public class MultiTwitter extends TwitterResources {
         if (ident instanceof String) {
           return twitter.list().getUserListStatuses((String) ident, slug, paging);
         } else if (ident instanceof Long) {
-          return twitter.list().getUserListStatuses((long) ident, slug, paging);
+          return twitter.list().getUserListStatuses((Long) ident, slug, paging);
         } else {
           throw new IllegalArgumentException();
         }
