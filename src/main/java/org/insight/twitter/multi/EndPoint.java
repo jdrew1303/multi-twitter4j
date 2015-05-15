@@ -326,10 +326,10 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
 
 
 interface GetBotQueue {
-  public BotQueue getBotQueue();
+  BotQueue getBotQueue();
 }
 
 
 interface ApplicationOnlySupport {
-  public boolean hasApplicationOnlySupport();
+  boolean hasApplicationOnlySupport();
 }

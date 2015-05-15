@@ -764,17 +764,17 @@ public class MultiTwitter extends TwitterResources {
 
   @Override
   public User showUserListSubscription(final long listId, final long userId) throws TwitterException {
-    return (new TwitterCommand<User>() {
+    return new TwitterCommand<User>() {
       @Override
       public User fetchResponse(final Twitter twitter) throws TwitterException {
         return twitter.list().showUserListSubscription(listId, userId);
       }
-    }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
+    }.getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
   }
 
   @Override
   public <T> User fetchUserListSubscription(final T ident, final String slug, final long userId) throws TwitterException {
-    return (new TwitterCommand<User>() {
+    return new TwitterCommand<User>() {
       @Override
       public User fetchResponse(final Twitter twitter) throws TwitterException {
         if (ident instanceof String) {
@@ -785,7 +785,7 @@ public class MultiTwitter extends TwitterResources {
           throw new IllegalArgumentException();
         }
       }
-    }).getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
+    }.getResponse(EndPoint.LISTS_SUBSCRIBERS_SHOW);
   }
 
   @Override

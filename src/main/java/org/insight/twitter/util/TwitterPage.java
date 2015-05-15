@@ -37,7 +37,7 @@ public abstract class TwitterPage<K> {
       paging.setSinceId(initSinceId);
     }
     try {
-      int retrieved = 0;
+      int retrieved;
       do {
         List<Status> pg = pageResponse(paging);
         retrieved = pg.size();
@@ -78,7 +78,7 @@ public abstract class TwitterPage<K> {
     final int limit = (maxElements <= 0) ? Integer.MAX_VALUE : maxElements;
     List<K> elements = new ArrayList<>();
     // Stopping Conditions: No more Results, Returning same result twice.
-    Set<K> lastResult = new HashSet<K>();
+    Set<K> lastResult = new HashSet<>();
     try {
       for (int page = 1; page < 50; page++) {
         List<K> pg = manualPageResponse(page);
@@ -88,7 +88,7 @@ public abstract class TwitterPage<K> {
           //System.out.println("Got same results, stop.");
           break;
         }
-        lastResult = new HashSet<K>(pg);
+        lastResult = new HashSet<>(pg);
         elements.addAll(pg);
         // Limit check:
         if (elements.size() >= limit) {

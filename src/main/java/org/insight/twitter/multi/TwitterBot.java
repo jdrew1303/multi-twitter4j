@@ -126,10 +126,7 @@ public final class TwitterBot implements Comparable<TwitterBot> {
     if (!(other instanceof TwitterBot)) {
       return false;
     }
-    if (other == this) {
-      return true;
-    }
-    return this.ident.equalsIgnoreCase(((TwitterBot) other).ident);
+    return other == this || this.ident.equalsIgnoreCase(((TwitterBot) other).ident);
   }
 
   @Override

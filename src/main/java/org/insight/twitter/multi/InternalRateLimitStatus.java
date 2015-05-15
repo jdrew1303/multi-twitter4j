@@ -22,7 +22,7 @@ public class InternalRateLimitStatus implements RateLimitStatus {
   }
 
   public final RateLimitStatus withRemaining(final int remaining) {
-    this.remaining = remaining;
+    this.remaining = 1;
     return this;
   }
 
