@@ -44,9 +44,9 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- * 
+ *
  * Should be straight forward to add unimplemented methods, if you really need them.
- * 
+ *
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources implements AutoCloseable {
@@ -1024,9 +1024,12 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     // TODO Auto-generated method stub
+
   }
+
+
 
   /*
    * All other unimplemented methods will throw UnsupportedMethodException
