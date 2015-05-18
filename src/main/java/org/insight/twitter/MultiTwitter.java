@@ -1,5 +1,6 @@
 package org.insight.twitter;
 
+import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +45,12 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- * 
+ *
  * Should be straight forward to add unimplemented methods, if you really need them.
- * 
+ *
  * All unimplemented methods will throw UnsupportedMethodException
  */
-public class MultiTwitter extends TwitterResources {
+public class MultiTwitter extends TwitterResources implements Closeable {
 
   private final Set<String> configuredBots;
   private final boolean useBlockingQueue;
@@ -978,9 +979,11 @@ public class MultiTwitter extends TwitterResources {
     }).getResponse(EndPoint.TRENDS_CLOSEST);
   }
 
-  /*
-   * HelpResources
-   */
+  //
+
+  //* HelpResources
+
+  //
 
   @Override
   public Map<String, RateLimitStatus> getRateLimitStatus(final String... resources) throws TwitterException {
@@ -1019,6 +1022,11 @@ public class MultiTwitter extends TwitterResources {
     }
     rateLimit.put(endpoint.toString(), rl);
     return rateLimit;
+  }
+
+  @Override
+  public void close() throws IOException {
+    // TODO Auto-generated method stub
   }
 
   /*
