@@ -1,6 +1,5 @@
 package org.insight.twitter;
 
-import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,12 +44,12 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- *
+ * 
  * Should be straight forward to add unimplemented methods, if you really need them.
- *
+ * 
  * All unimplemented methods will throw UnsupportedMethodException
  */
-public class MultiTwitter extends TwitterResources implements Closeable {
+public class MultiTwitter extends TwitterResources implements AutoCloseable {
 
   private final Set<String> configuredBots;
   private final boolean useBlockingQueue;
