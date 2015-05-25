@@ -14,6 +14,10 @@ public class TwitterObjects {
 
   public static final String TWITTER_DATE_FORMAT = "EEE MMM d HH:mm:ss Z yyyy";
 
+  public static long[] toPrimitive(final List<Long> list) {
+    return toPrimitive(list.toArray(new Long[list.size()]));
+  }
+
   public static long[] toPrimitive(final Long[] array) {
     if (array == null) {
       return null;

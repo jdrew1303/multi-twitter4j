@@ -48,6 +48,9 @@ public interface CursorResources {
 
   List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException;
 
+  <K> List<K> getBulkTweetLookup(final As type, Collection<Long> ids) throws TwitterException;
+
+
   /*
    * Users
    */

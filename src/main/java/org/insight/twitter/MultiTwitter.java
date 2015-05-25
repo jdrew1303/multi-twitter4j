@@ -44,9 +44,9 @@ import twitter4j.UserList;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- *
+ * 
  * Should be straight forward to add unimplemented methods, if you really need them.
- *
+ * 
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources implements AutoCloseable {
@@ -249,6 +249,23 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   }
 
   // TODO: lookup() Wrapper that uses both lookup() and show()
+  @SuppressWarnings("unchecked")
+  public <K> List<K> getBulkTweetLookup(final As type, Collection<Long> ids) throws TwitterException {
+    List<K> results = new ArrayList<K>();
+
+    Set<Long> unique_list = new HashSet<Long>(ids);
+    List<Long> ids_list = new ArrayList<Long>(unique_list);
+
+    List<List<Long>> batches = TwitterObjects.partitionList(ids_list, 100);
+    for (List<Long> batch : batches) {
+      if (type.equals(As.JSON)) {
+        results.addAll((Collection<? extends K>) lookupJSON(TwitterObjects.toPrimitive(batch)));
+      } else if (type.equals(As.POJO)) {
+        results.addAll((Collection<? extends K>) lookup(TwitterObjects.toPrimitive(batch)));
+      }
+    }
+    return results;
+  }
 
   /*
    * FriendsFollowers
