@@ -34,7 +34,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
     // Prevent Duplicates During Reloads:
     if (!super.contains(e)) {
       loadedBots.add(e);
-      System.out.println("return " + endpoint + " bot: " + e.getConfig() + " " + e.getCachedRateLimitStatus().toString());
+      //System.out.println("return " + endpoint + " bot: " + e.getConfig() + " " + e.getCachedRateLimitStatus().toString());
       return super.offer(e);
     } else {
       System.out.println("ERROR RETURNING " + endpoint + " bot: " + e.getConfig() + " " + e.getCachedRateLimitStatus().toString());
@@ -71,7 +71,7 @@ public class BotQueue extends PriorityBlockingQueue<TwitterBot> {
         e.printStackTrace();
       }
     } while (checkNext(bot));
-    System.out.println("take " + endpoint + " bot: " + bot.getConfig() + " " + bot.getCachedRateLimitStatus().toString());
+    //System.out.println("take " + endpoint + " bot: " + bot.getConfig() + " " + bot.getCachedRateLimitStatus().toString());
     return bot;
   }
 

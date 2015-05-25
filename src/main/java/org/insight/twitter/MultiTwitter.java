@@ -1,9 +1,9 @@
 package org.insight.twitter;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -77,9 +77,14 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
    */
   private Set<String> getConfiguredBots(final String configFile) {
     Set<String> botIDs = new HashSet<>();
-    try (InputStream in = new FileInputStream(configFile)) {
+
+
+
+    // try (InputStream in = new FileInputStream(configFile)) {
+    try (InputStream in = MultiTwitter.class.getResourceAsStream(configFile)) {
+
       Properties t4jProperties = new Properties();
-      System.out.println("Reading Bot Configs from: " + "/" + configFile);
+      //System.out.println("Reading Bot Configs from: " + "/" + configFile);
       t4jProperties.load(in);
       botIDs.addAll(getConfiguredBots(t4jProperties));
     } catch (IOException e) {
@@ -99,7 +104,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
       if (m.find()) {
         String strBotNum = m.group(1);
         botIDs.add("bot." + strBotNum);
-        System.out.println("Detected config for: " + strBotNum);
+        //System.out.println("Detected config for: " + strBotNum);
       }
     }
     return botIDs;
@@ -326,6 +331,26 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   /*
    * Users
    */
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public <T, K> List<K> getBulkLookupUsers(As type, final Collection<T> idents) throws TwitterException {
+    List<K> results = new ArrayList<K>();
+
+    Set<T> unique_list = new HashSet<T>(idents);
+    List<T> idents_list = new ArrayList<T>(unique_list);
+
+    List<List<T>> batches = TwitterObjects.partitionList(idents_list, 100);
+    for (List<T> batch : batches) {
+      if (type.equals(As.JSON)) {
+        results.addAll((Collection<? extends K>) fetchLookupUsersJSON(batch));
+      } else if (type.equals(As.POJO)) {
+        results.addAll((Collection<? extends K>) fetchLookupUsers(batch));
+      }
+    }
+    return results;
+  }
+
 
   // Awkwardly doesn't implement Paging or Cursors: Max Per page: 20, Max Results 1000.
   @Override
@@ -1026,10 +1051,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   @Override
   public void close() {
     // TODO Auto-generated method stub
-
   }
-
-
 
   /*
    * All other unimplemented methods will throw UnsupportedMethodException

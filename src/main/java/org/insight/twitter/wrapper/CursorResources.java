@@ -1,5 +1,6 @@
 package org.insight.twitter.wrapper;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.insight.twitter.wrapper.JSONResources.As;
@@ -44,8 +45,14 @@ public interface CursorResources {
    */
 
   List<Long> getBulkRetweeterIds(final long statusId, final int maxElements) throws TwitterException;
-  
+
   List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException;
+
+  /*
+   * Users
+   */
+
+  <T, K> List<K> getBulkLookupUsers(As type, final Collection<T> idents) throws TwitterException;
 
   /*
    * FriendsFollowers
@@ -54,14 +61,15 @@ public interface CursorResources {
   <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException;
 
   <T> List<Long> getBulkFriendsIDs(final T ident) throws TwitterException;
- 
+
 
   <T> List<Long> getBulkFollowersIDs(final T ident, final int maxElements) throws TwitterException;
-  
+
   <T> List<Long> getBulkFollowersIDs(final T ident) throws TwitterException;
 
 
-  <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException;
 
   <T, K> List<K> getBulkFriendsList(As type, final T ident) throws TwitterException;
 
@@ -70,11 +78,13 @@ public interface CursorResources {
   <T> List<User> getBulkFriendsList(final T ident) throws TwitterException;
 
 
-  <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException;
 
   <T, K> List<K> getBulkFollowersList(As type, final T ident) throws TwitterException;
 
-  <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities) throws TwitterException;
+  <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
+      throws TwitterException;
 
   <T> List<User> getBulkFollowersList(final T ident) throws TwitterException;
 
@@ -82,11 +92,13 @@ public interface CursorResources {
    * Lists
    */
 
-  <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
+  <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements)
+      throws TwitterException;
 
   <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug) throws TwitterException;
 
-  <T> List<Status> getBulkUserListStatuses(final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements) throws TwitterException;
+  <T> List<Status> getBulkUserListStatuses(final T ident, final String slug, final long initSinceId, final long initMaxId, final int maxElements)
+      throws TwitterException;
 
   <T> List<Status> getBulkUserListStatuses(final T ident, final String slug) throws TwitterException;
 
