@@ -4,8 +4,10 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
+import twitter4j.Status;
 import twitter4j.TwitterObjectFactory;
 import twitter4j.TwitterResponse;
+import twitter4j.User;
 
 /*
  * Useful Things to do with Twitter Objects:
@@ -29,6 +31,35 @@ public class TwitterObjects {
       result[i] = array[i].longValue();
     }
     return result;
+  }
+
+  /*
+   * List of IDs from List of Users
+   */
+  public static List<Long> getUserIDs(List<User> users) {
+    List<Long> ids = new ArrayList<Long>();
+    for (User u : users) {
+      ids.add(u.getId());
+    }
+    return ids;
+  }
+
+  /*
+   * List of IDs from List of Statuses
+   */
+  public static List<Long> getTweetIDs(List<Status> statuses) {
+    return getTweetIDs(statuses, true);
+  }
+
+  public static List<Long> getTweetIDs(List<Status> statuses, boolean includeRetweets) {
+    List<Long> ids = new ArrayList<Long>();
+    for (Status s : statuses) {
+      ids.add(s.getId());
+      if (includeRetweets && s.isRetweet()) {
+        ids.add(s.getRetweetedStatus().getId());
+      }
+    }
+    return ids;
   }
 
   /*

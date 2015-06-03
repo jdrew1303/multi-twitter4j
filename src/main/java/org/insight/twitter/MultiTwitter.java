@@ -78,8 +78,6 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   private Set<String> getConfiguredBots(final String configFile) {
     Set<String> botIDs = new HashSet<>();
 
-
-
     // try (InputStream in = new FileInputStream(configFile)) {
     try (InputStream in = MultiTwitter.class.getResourceAsStream(configFile)) {
 
@@ -249,6 +247,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   }
 
   // TODO: lookup() Wrapper that uses both lookup() and show()
+  @Override
   @SuppressWarnings("unchecked")
   public <K> List<K> getBulkTweetLookup(final As type, Collection<Long> ids) throws TwitterException {
     List<K> results = new ArrayList<K>();
@@ -360,9 +359,24 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     List<List<T>> batches = TwitterObjects.partitionList(idents_list, 100);
     for (List<T> batch : batches) {
       if (type.equals(As.JSON)) {
-        results.addAll((Collection<? extends K>) fetchLookupUsersJSON(batch));
+
+        // To array:
+        if (batch.get(0) instanceof String) {
+          results.addAll((Collection<? extends K>) fetchLookupUsersJSON(batch.toArray(new String[batch.size()])));
+        } else if (batch.get(0) instanceof Long) {
+          results.addAll((Collection<? extends K>) fetchLookupUsersJSON(batch.toArray(new Long[batch.size()])));
+        }
+
+
       } else if (type.equals(As.POJO)) {
-        results.addAll((Collection<? extends K>) fetchLookupUsers(batch));
+
+        // To array:
+        if (batch.get(0) instanceof String) {
+          results.addAll((Collection<? extends K>) fetchLookupUsers(batch.toArray(new String[batch.size()])));
+        } else if (batch.get(0) instanceof Long) {
+          results.addAll((Collection<? extends K>) fetchLookupUsers(batch.toArray(new Long[batch.size()])));
+        }
+
       }
     }
     return results;
