@@ -1,28 +1,44 @@
 package org.insight.twitter.wrapper;
 
+import static twitter4j.TwitterObjects.newIDs;
+import static twitter4j.TwitterObjects.newLocationResponseList;
+import static twitter4j.TwitterObjects.newPagableUser;
+import static twitter4j.TwitterObjects.newPagableUserList;
+import static twitter4j.TwitterObjects.newPlaceResponseList;
+import static twitter4j.TwitterObjects.newQueryResult;
+import static twitter4j.TwitterObjects.newStatusResponseList;
+import static twitter4j.TwitterObjects.newUserListResponseList;
+import static twitter4j.TwitterObjects.newUserResponseList;
+
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-
-import org.insight.twitter.util.TwitterObjects;
+import java.util.Map;
 
 import twitter4j.AccountSettings;
 import twitter4j.Friendship;
 import twitter4j.GeoLocation;
 import twitter4j.GeoQuery;
 import twitter4j.IDs;
+import twitter4j.Location;
 import twitter4j.OEmbed;
 import twitter4j.OEmbedRequest;
 import twitter4j.PagableResponseList;
 import twitter4j.Paging;
+import twitter4j.Place;
 import twitter4j.Query;
+import twitter4j.Query.ResultType;
 import twitter4j.QueryResult;
 import twitter4j.Relationship;
 import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.StatusUpdate;
+import twitter4j.Trends;
 import twitter4j.TwitterAPIConfiguration;
 import twitter4j.TwitterException;
+import twitter4j.TwitterObjectFactory;
 import twitter4j.UploadedMedia;
 import twitter4j.User;
 import twitter4j.UserList;
@@ -39,7 +55,7 @@ import twitter4j.api.UsersResources;
 
 /*
  * Selected Methods from twitter4J Twitter interface. Unsupported methods throw exceptions.
- *
+ * 
  * Partially implemented: FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, Not Implemented: For Authenticating Users Only:
  * SpamReportingResource, SavedSearchesResources, SuggestedUsersResources, DirectMessagesResources, OAuthSupport, OAuth2Support, TwitterBase, Rate Limits Are
  * Handled internally: HelpResources
@@ -47,12 +63,11 @@ import twitter4j.api.UsersResources;
 public abstract class TwitterResources implements TimelinesResources, TweetsResources, SearchResource, FriendsFollowersResources, UsersResources,
     FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, HelpResources, CursorResources, JSONResources {
 
-  private static final String UNSUPPORTED_METHOD = "This API call cannot be distributed between bots!";
+  private static final String UNSUPPORTED_METHOD = "This API method is not supported!";
 
   /*
    * Interfaces
    */
-
   public JSONResources json() {
     return this;
   }
@@ -109,53 +124,42 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    * Bulk Timelines:
    */
   @Override
-  public abstract <T, K> List<K> getBulkUserTimeline(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements)
-      throws TwitterException;
+  public abstract <T> List<String> getBulkUserTimeline(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException;
 
   @Override
-  public <T, K> List<K> getBulkUserTimeline(As type, T ident) throws TwitterException {
-    return getBulkUserTimeline(type, ident, -1, -1, -1);
+  public <T> List<String> getBulkUserTimeline(T ident) throws TwitterException {
+    return getBulkUserTimeline(ident, -1, -1, -1);
   }
 
-  @Override
-  public <T> List<Status> getBulkUserTimeline(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
-    return getBulkUserTimeline(As.POJO, ident, initSinceId, initMaxId, maxElements);
-  }
+  /*
+   * Bulk Favorites:
+   */
 
   @Override
-  public <T> List<Status> getBulkUserTimeline(T ident) throws TwitterException {
-    return getBulkUserTimeline(As.POJO, ident, -1, -1, -1);
-  }
-
-  // Bulk Favorites:
+  public abstract <T> List<String> getBulkFavorites(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException;
 
   @Override
-  public abstract <T, K> List<K> getBulkFavorites(As type, final T ident, final long initSinceId, final long initMaxId, final int maxElements)
-      throws TwitterException;
-
-  @Override
-  public <T, K> List<K> getBulkFavorites(As type, T ident) throws TwitterException {
-    return getBulkFavorites(type, ident, -1, -1, -1);
-  }
-
-  @Override
-  public <T> List<Status> getBulkFavorites(T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
-    return getBulkFavorites(As.POJO, ident, initSinceId, initMaxId, maxElements);
-  }
-
-  @Override
-  public <T> List<Status> getBulkFavorites(T ident) throws TwitterException {
-    return getBulkFavorites(As.POJO, ident, -1, -1, -1);
+  public <T> List<String> getBulkFavorites(T ident) throws TwitterException {
+    return getBulkFavorites(ident, -1, -1, -1);
   }
 
   /*
    * Bulk Tweets
    */
-  @Override
-  public abstract List<Long> getBulkRetweeterIds(final long statusId, final int maxElements) throws TwitterException;
 
   @Override
-  public List<Long> getBulkRetweeterIds(final long statusId) throws TwitterException {
+  public abstract Map<Long, String> getBulkTweetLookupMap(Collection<Long> ids) throws TwitterException;
+
+  @Override
+  public List<String> getBulkTweetLookup(Collection<Long> ids) throws TwitterException {
+    return new ArrayList<String>(getBulkTweetLookupMap(ids).values());
+  }
+
+  @Override
+  public abstract List<Long> getBulkRetweeterIds(long statusId, int maxElements) throws TwitterException;
+
+  @Override
+  public List<Long> getBulkRetweeterIds(long statusId) throws TwitterException {
     return getBulkRetweeterIds(statusId, -1);
   }
 
@@ -163,7 +167,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    * Bulk FriendsFollowers
    */
   @Override
-  public abstract <T> List<Long> getBulkFriendsIDs(final T ident, final int maxElements) throws TwitterException;
+  public abstract <T> List<Long> getBulkFriendsIDs(T ident, int maxElements) throws TwitterException;
 
   @Override
   public <T> List<Long> getBulkFriendsIDs(T ident) throws TwitterException {
@@ -171,7 +175,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
   @Override
-  public abstract <T> List<Long> getBulkFollowersIDs(final T ident, final int maxElements) throws TwitterException;
+  public abstract <T> List<Long> getBulkFollowersIDs(T ident, int maxElements) throws TwitterException;
 
   @Override
   public <T> List<Long> getBulkFollowersIDs(T ident) throws TwitterException {
@@ -179,65 +183,29 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
   @Override
-  public abstract <T, K> List<K> getBulkFriendsList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
+  public abstract <T> List<String> getBulkFriendsList(T ident, int maxElements, boolean skipStatus, boolean includeUserEntities) throws TwitterException;
 
   @Override
-  public <T, K> List<K> getBulkFriendsList(As type, final T ident) throws TwitterException {
-    return getBulkFriendsList(type, ident, -1, false, true);
+  public <T> List<String> getBulkFriendsList(T ident) throws TwitterException {
+    return getBulkFriendsList(ident, -1, false, true);
   }
 
   @Override
-  public <T> List<User> getBulkFriendsList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException {
-    return getBulkFriendsList(As.POJO, ident, maxElements, skipStatus, includeUserEntities);
-  }
+  public abstract <T> List<String> getBulkFollowersList(T ident, int maxElements, boolean skipStatus, boolean includeUserEntities) throws TwitterException;
 
   @Override
-  public <T> List<User> getBulkFriendsList(final T ident) throws TwitterException {
-    return getBulkFriendsList(As.POJO, ident, -1, false, true);
+  public <T> List<String> getBulkFollowersList(T ident) throws TwitterException {
+    return getBulkFollowersList(ident, -1, false, true);
   }
-
-  @Override
-  public abstract <T, K> List<K> getBulkFollowersList(As type, final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException;
-
-  @Override
-  public <T, K> List<K> getBulkFollowersList(As type, final T ident) throws TwitterException {
-    return getBulkFollowersList(type, ident, -1, false, true);
-  }
-
-  @Override
-  public <T> List<User> getBulkFollowersList(final T ident, final int maxElements, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException {
-    return getBulkFollowersList(As.POJO, ident, maxElements, skipStatus, includeUserEntities);
-  }
-
-  @Override
-  public <T> List<User> getBulkFollowersList(final T ident) throws TwitterException {
-    return getBulkFollowersList(As.POJO, ident, -1, false, true);
-  }
-
 
   // Bulk List Statuses:
 
   @Override
-  public abstract <T, K> List<K> getBulkUserListStatuses(As type, final T ident, final String slug, final long initSinceId, final long initMaxId,
-      final int maxElements) throws TwitterException;
+  public abstract <T> List<String> getBulkUserListStatuses(T ident, String slug, long initSinceId, long initMaxId, int maxElements) throws TwitterException;
 
   @Override
-  public <T, K> List<K> getBulkUserListStatuses(As type, T ident, String slug) throws TwitterException {
-    return getBulkUserListStatuses(type, ident, slug, -1, -1, -1);
-  }
-
-  @Override
-  public <T> List<Status> getBulkUserListStatuses(T ident, String slug, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
-    return getBulkUserListStatuses(As.POJO, ident, slug, initSinceId, initMaxId, maxElements);
-  }
-
-  @Override
-  public <T> List<Status> getBulkUserListStatuses(T ident, String slug) throws TwitterException {
-    return getBulkUserListStatuses(As.POJO, ident, slug, -1, -1, -1);
+  public <T> List<String> getBulkUserListStatuses(T ident, String slug) throws TwitterException {
+    return getBulkUserListStatuses(ident, slug, -1, -1, -1);
   }
 
   /*
@@ -245,93 +213,43 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public abstract <T, K> List<K> getBulkUserListMemberships(As type, final T ident, int maxElements) throws TwitterException;
+  public abstract <T> List<String> getBulkUserListMemberships(T ident, int maxElements) throws TwitterException;
 
   @Override
-  public <T, K> List<K> getBulkUserListMemberships(As type, T ident) throws TwitterException {
-    return getBulkUserListMemberships(type, ident, -1);
+  public <T> List<String> getBulkUserListMemberships(T ident) throws TwitterException {
+    return getBulkUserListMemberships(ident, -1);
   }
 
   @Override
-  public <T> List<UserList> getBulkUserListMemberships(T ident, int maxElements) throws TwitterException {
-    return getBulkUserListMemberships(As.POJO, ident, maxElements);
+  public abstract <T> List<String> getBulkUserListSubscribers(T ident, String slug, int maxElements) throws TwitterException;
+
+  @Override
+  public <T> List<String> getBulkUserListSubscribers(T ident, String slug) throws TwitterException {
+    return getBulkUserListSubscribers(ident, slug, -1);
   }
 
   @Override
-  public <T> List<UserList> getBulkUserListMemberships(T ident) throws TwitterException {
-    return getBulkUserListMemberships(As.POJO, ident, -1);
+  public abstract List<String> getBulkUserListMembers(long listId, int maxElements) throws TwitterException;
+
+  @Override
+  public List<String> getBulkUserListMembers(long listId) throws TwitterException {
+    return getBulkUserListMembers(listId, -1);
   }
 
   @Override
-  public abstract <T, K> List<K> getBulkUserListSubscribers(As type, final T ident, final String slug, int maxElements) throws TwitterException;
+  public abstract <T> List<String> getBulkUserListSubscriptions(T ident, int maxElements) throws TwitterException;
 
   @Override
-  public <T, K> List<K> getBulkUserListSubscribers(As type, T ident, String slug) throws TwitterException {
-    return getBulkUserListSubscribers(type, ident, slug, -1);
+  public <T> List<String> getBulkUserListSubscriptions(T ident) throws TwitterException {
+    return getBulkUserListSubscriptions(ident, -1);
   }
 
   @Override
-  public <T> List<User> getBulkUserListSubscribers(T ident, String slug, int maxElements) throws TwitterException {
-    return getBulkUserListSubscribers(As.POJO, ident, slug, maxElements);
-  }
+  public abstract <T> List<String> getBulkUserListsOwnerships(T ident, int maxElements) throws TwitterException;
 
   @Override
-  public <T> List<User> getBulkUserListSubscribers(T ident, String slug) throws TwitterException {
-    return getBulkUserListSubscribers(As.POJO, ident, slug, -1);
-  }
-
-  @Override
-  public abstract <K> List<K> getBulkUserListMembers(As type, final long listId, final int maxElements) throws TwitterException;
-
-  @Override
-  public <K> List<K> getBulkUserListMembers(As type, long listId) throws TwitterException {
-    return getBulkUserListMembers(type, listId, -1);
-  }
-
-  @Override
-  public List<User> getBulkUserListMembers(long listId, int maxElements) throws TwitterException {
-    return getBulkUserListMembers(As.POJO, listId, maxElements);
-  }
-
-  @Override
-  public List<User> getBulkUserListMembers(long listId) throws TwitterException {
-    return getBulkUserListMembers(As.POJO, listId, -1);
-  }
-
-  @Override
-  public abstract <T, K> List<K> getBulkUserListSubscriptions(As type, final T ident, int maxElements) throws TwitterException;
-
-  @Override
-  public <T, K> List<K> getBulkUserListSubscriptions(As type, T ident) throws TwitterException {
-    return getBulkUserListSubscriptions(type, ident, -1);
-  }
-
-  @Override
-  public <T> List<UserList> getBulkUserListSubscriptions(T ident, int maxElements) throws TwitterException {
-    return getBulkUserListSubscriptions(As.POJO, ident, maxElements);
-  }
-
-  @Override
-  public <T> List<UserList> getBulkUserListSubscriptions(T ident) throws TwitterException {
-    return getBulkUserListSubscriptions(As.POJO, ident, -1);
-  }
-
-  @Override
-  public abstract <T, K> List<K> getBulkUserListsOwnerships(As type, final T ident, int maxElements) throws TwitterException;
-
-  @Override
-  public <T, K> List<K> getBulkUserListsOwnerships(As type, T ident) throws TwitterException {
-    return getBulkUserListsOwnerships(type, ident, -1);
-  }
-
-  @Override
-  public <T> List<UserList> getBulkUserListsOwnerships(T ident, int maxElements) throws TwitterException {
-    return getBulkUserListsOwnerships(As.POJO, ident, maxElements);
-  }
-
-  @Override
-  public <T> List<UserList> getBulkUserListsOwnerships(T ident) throws TwitterException {
-    return getBulkUserListsOwnerships(As.POJO, ident, -1);
+  public <T> List<String> getBulkUserListsOwnerships(T ident) throws TwitterException {
+    return getBulkUserListsOwnerships(ident, -1);
   }
 
   /*
@@ -339,81 +257,59 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public abstract <K> List<K> getBulkSearchUsers(As type, final String query, int maxElements) throws TwitterException;
+  public abstract List<String> getBulkSearchUsers(String query, int maxElements) throws TwitterException;
 
   @Override
-  public <K> List<K> getBulkSearchUsers(As type, final String query) throws TwitterException {
-    return getBulkSearchUsers(type, query, -1);
+  public List<String> getBulkSearchUsers(String query) throws TwitterException {
+    return getBulkSearchUsers(query, -1);
   }
 
   @Override
-  public List<User> getBulkSearchUsers(final String query, int maxElements) throws TwitterException {
-    return getBulkSearchUsers(As.POJO, query, maxElements);
+  public List<String> getBulkSearchResults(String query, int maxElements) throws TwitterException {
+    Query q = new Query();
+    q.setQuery(query);
+    q.setResultType(ResultType.mixed);
+    q.setCount(100);
+    return getBulkSearchResults(q, maxElements);
   }
 
   @Override
-  public List<User> getBulkSearchUsers(final String query) throws TwitterException {
-    return getBulkSearchUsers(As.POJO, query, -1);
+  public List<String> getBulkSearchResults(String query) throws TwitterException {
+    return getBulkSearchResults(query, -1);
   }
 
   @Override
-  public abstract <K> List<K> getBulkSearchResults(final As type, final Query query, int maxElements) throws TwitterException;
+  public abstract List<String> getBulkSearchResults(Query query, int maxElements) throws TwitterException;
 
   @Override
-  public <K> List<K> getBulkSearchResults(final As type, final Query query) throws TwitterException {
-    return getBulkSearchResults(type, query, -1);
+  public List<String> getBulkSearchResults(Query query) throws TwitterException {
+    return getBulkSearchResults(query, -1);
   }
-
-  @Override
-  public List<User> getBulkSearchResults(final Query query, int maxElements) throws TwitterException {
-    return getBulkSearchResults(As.POJO, query, maxElements);
-  }
-
-  @Override
-  public List<User> getBulkSearchResults(final Query query) throws TwitterException {
-    return getBulkSearchResults(As.POJO, query, -1);
-  }
-
 
   /*
    * TimelinesResources
    */
-
-  public abstract <T> ResponseList<Status> fetchUserTimeline(final T ident, final Paging paging) throws TwitterException;
+  @Override
+  public abstract <T> List<String> getUserTimelineJSON(T ident, Paging paging) throws TwitterException;
 
   @Override
-  public <T> List<String> fetchUserTimelineJSON(final T ident, final Paging paging) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserTimeline(ident, paging));
+  public ResponseList<Status> getUserTimeline(String screenName) throws TwitterException {
+    return newStatusResponseList(getUserTimelineJSON(screenName, new Paging()));
   }
 
   @Override
-  public ResponseList<Status> getUserTimeline(final String screenName) throws TwitterException {
-    return fetchUserTimeline(screenName, new Paging());
+  public ResponseList<Status> getUserTimeline(String screenName, Paging paging) throws TwitterException {
+    return newStatusResponseList(getUserTimelineJSON(screenName, paging));
   }
 
   @Override
-  public ResponseList<Status> getUserTimeline(final String screenName, final Paging paging) throws TwitterException {
-    return fetchUserTimeline(screenName, paging);
+  public ResponseList<Status> getUserTimeline(long userId) throws TwitterException {
+    return newStatusResponseList(getUserTimelineJSON(userId, new Paging()));
   }
 
   @Override
-  public List<String> getUserTimelineJSON(final String screenName, final Paging paging) throws TwitterException {
-    return fetchUserTimelineJSON(screenName, paging);
-  }
-
-  @Override
-  public ResponseList<Status> getUserTimeline(final long userId) throws TwitterException {
-    return fetchUserTimeline(userId, new Paging());
-  }
-
-  @Override
-  public ResponseList<Status> getUserTimeline(final long userId, final Paging paging) throws TwitterException {
-    return fetchUserTimeline(userId, paging);
-  }
-
-  @Override
-  public List<String> getUserTimelineJSON(final long userId, final Paging paging) throws TwitterException {
-    return fetchUserTimelineJSON(userId, paging);
+  public ResponseList<Status> getUserTimeline(long userId, Paging paging) throws TwitterException {
+    return newStatusResponseList(getUserTimelineJSON(userId, paging));
   }
 
   /*
@@ -423,49 +319,49 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public ResponseList<Status> getMentionsTimeline() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Status> getMentionsTimeline(final Paging paging) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Status> getMentionsTimeline(Paging paging) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public ResponseList<Status> getUserTimeline() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Status> getUserTimeline(final Paging paging) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Status> getUserTimeline(Paging paging) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public ResponseList<Status> getHomeTimeline() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Status> getHomeTimeline(final Paging paging) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Status> getHomeTimeline(Paging paging) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public ResponseList<Status> getRetweetsOfMe() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Status> getRetweetsOfMe(final Paging paging) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Status> getRetweetsOfMe(Paging paging) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   /*
@@ -473,34 +369,34 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public abstract IDs getRetweeterIds(long statusId, int count, long cursor) throws TwitterException;
-
-  @Override
-  public IDs getRetweeterIds(final long statusId, final long cursor) throws TwitterException {
-    return getRetweeterIds(statusId, 200, cursor);
+  public ResponseList<Status> getRetweets(long statusId) throws TwitterException {
+    return newStatusResponseList(getRetweetsJSON(statusId));
   }
 
   @Override
-  public String getRetweeterIdsJSON(final long statusId, final int count, final long cursor) throws TwitterException {
-    return TwitterObjects.getJSON(getRetweeterIds(statusId, count, cursor));
+  public IDs getRetweeterIds(long statusId, int count, long cursor) throws TwitterException {
+    return newIDs(getRetweeterIdsJSON(statusId, count, cursor));
   }
 
   @Override
-  public abstract ResponseList<Status> getRetweets(long statusId) throws TwitterException;
-
-  @Override
-  public List<String> getRetweetsJSON(final long statusId) throws TwitterException {
-    return TwitterObjects.getJSONList(getRetweets(statusId));
+  public IDs getRetweeterIds(long statusId, long cursor) throws TwitterException {
+    return newIDs(getRetweeterIdsJSON(statusId, 100, cursor));
   }
 
   @Override
-  public String showStatusJSON(final long id) throws TwitterException {
-    return TwitterObjects.getJSON(showStatus(id));
+  public abstract List<String> getRetweetsJSON(long statusId) throws TwitterException;
+
+  @Override
+  public abstract String showStatusJSON(long id) throws TwitterException;
+
+  @Override
+  public Status showStatus(long id) throws TwitterException {
+    return TwitterObjectFactory.createStatus(showStatusJSON(id));
   }
 
   @Override
-  public List<String> lookupJSON(final long[] ids) throws TwitterException {
-    return TwitterObjects.getJSONList(lookup(ids));
+  public ResponseList<Status> lookup(long... ids) throws TwitterException {
+    return newStatusResponseList(new ArrayList<String>(lookupJSON(ids).values()));
   }
 
   /*
@@ -509,38 +405,38 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   @Deprecated
-  public Status destroyStatus(final long statusId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status destroyStatus(long statusId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Status updateStatus(final String status) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status updateStatus(String status) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Status updateStatus(final StatusUpdate latestStatus) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status updateStatus(StatusUpdate latestStatus) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Status retweetStatus(final long statusId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status retweetStatus(long statusId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public OEmbed getOEmbed(final OEmbedRequest req) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public OEmbed getOEmbed(OEmbedRequest req) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UploadedMedia uploadMedia(final File mediaFile) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public UploadedMedia uploadMedia(File mediaFile) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   /*
@@ -548,141 +444,19 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public abstract QueryResult search(final Query query) throws TwitterException;
+  public abstract String searchJSON(Query query) throws TwitterException;
 
   @Override
-  public String searchJSON(final Query query) throws TwitterException {
-    return TwitterObjects.getJSON(search(query));
-  }
-
-  /*
-   * FriendsFollowersResources
-   */
-
-  public abstract <T> IDs fetchFriendsIDs(final T ident, final long cursor, final int count) throws TwitterException;
+  public abstract List<String> searchUsersJSON(String query, int page) throws TwitterException;
 
   @Override
-  public IDs getFriendsIDs(final long userId, final long cursor) throws TwitterException {
-    return fetchFriendsIDs(userId, cursor, 5000);
+  public QueryResult search(Query query) throws TwitterException {
+    return newQueryResult(searchJSON(query));
   }
 
   @Override
-  public IDs getFriendsIDs(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsIDs(userId, cursor, count);
-  }
-
-  @Override
-  public IDs getFriendsIDs(final String screenName, final long cursor) throws TwitterException {
-    return fetchFriendsIDs(screenName, cursor, 5000);
-  }
-
-  @Override
-  public IDs getFriendsIDs(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsIDs(screenName, cursor, count);
-  }
-
-  public abstract <T> IDs fetchFollowersIDs(final T ident, final long cursor, final int count) throws TwitterException;
-
-  @Override
-  public IDs getFollowersIDs(final long userId, final long cursor) throws TwitterException {
-    return fetchFollowersIDs(userId, cursor, 5000);
-  }
-
-  @Override
-  public IDs getFollowersIDs(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersIDs(userId, cursor, count);
-  }
-
-  @Override
-  public IDs getFollowersIDs(final String screenName, final long cursor) throws TwitterException {
-    return fetchFollowersIDs(screenName, cursor, 5000);
-  }
-
-  @Override
-  public IDs getFollowersIDs(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersIDs(screenName, cursor, count);
-  }
-
-  public abstract <T> Relationship fetchFriendship(final T sourceIdent, final T targetIdent) throws TwitterException;
-
-  @Override
-  public Relationship showFriendship(final long sourceId, final long targetId) throws TwitterException {
-    return fetchFriendship(sourceId, targetId);
-  }
-
-  @Override
-  public Relationship showFriendship(final String sourceScreenName, final String targetScreenName) throws TwitterException {
-    return fetchFriendship(sourceScreenName, targetScreenName);
-  }
-
-  public abstract <T> PagableResponseList<User> fetchFriendsList(final T ident, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException;
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final long userId, final long cursor) throws TwitterException {
-    return fetchFriendsList(userId, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsList(userId, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final long userId, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFriendsList(userId, cursor, count, skipStatus, includeUserEntities);
-  }
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final String screenName, final long cursor) throws TwitterException {
-    return fetchFriendsList(screenName, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsList(screenName, cursor, count, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFriendsList(final String screenName, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFriendsList(screenName, cursor, count, skipStatus, includeUserEntities);
-  }
-
-  public abstract <T> PagableResponseList<User> fetchFollowersList(final T ident, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException;
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final long userId, final long cursor) throws TwitterException {
-    return fetchFollowersList(userId, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersList(userId, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final long userId, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFollowersList(userId, cursor, count, skipStatus, includeUserEntities);
-  }
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final String screenName, final long cursor) throws TwitterException {
-    return fetchFollowersList(screenName, cursor, 200, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersList(screenName, cursor, count, false, true);
-  }
-
-  @Override
-  public PagableResponseList<User> getFollowersList(final String screenName, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFollowersList(screenName, cursor, count, skipStatus, includeUserEntities);
+  public ResponseList<User> searchUsers(String query, int page) throws TwitterException {
+    return newUserResponseList(searchUsersJSON(query, page));
   }
 
   /*
@@ -690,84 +464,134 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public <T> String fetchFriendsIDsJSON(final T ident, final long cursor, final int count) throws TwitterException {
-    return TwitterObjects.getJSON(fetchFriendsIDs(ident, cursor, count));
+  public IDs getFriendsIDs(long userId, long cursor) throws TwitterException {
+    return newIDs(getFriendsIDsJSON(userId, cursor, 5000));
   }
 
   @Override
-  public String getFriendsIDsJSON(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsIDsJSON(userId, cursor, count);
+  public IDs getFriendsIDs(long userId, long cursor, int count) throws TwitterException {
+    return newIDs(getFriendsIDsJSON(userId, cursor, count));
   }
 
   @Override
-  public String getFriendsIDsJSON(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFriendsIDsJSON(screenName, cursor, count);
+  public IDs getFriendsIDs(String screenName, long cursor) throws TwitterException {
+    return newIDs(getFriendsIDsJSON(screenName, cursor, 5000));
   }
 
   @Override
-  public <T> String fetchFollowersIDsJSON(final T ident, final long cursor, final int count) throws TwitterException {
-    return TwitterObjects.getJSON(fetchFollowersIDs(ident, cursor, count));
+  public IDs getFriendsIDs(String screenName, long cursor, int count) throws TwitterException {
+    return newIDs(getFriendsIDsJSON(screenName, cursor, count));
   }
 
   @Override
-  public String getFollowersIDsJSON(final long userId, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersIDsJSON(userId, cursor, count);
+  public IDs getFollowersIDs(long userId, long cursor) throws TwitterException {
+    return newIDs(getFollowersIDsJSON(userId, cursor, 5000));
   }
 
   @Override
-  public String getFollowersIDsJSON(final String screenName, final long cursor, final int count) throws TwitterException {
-    return fetchFollowersIDsJSON(screenName, cursor, count);
+  public IDs getFollowersIDs(long userId, long cursor, int count) throws TwitterException {
+    return newIDs(getFollowersIDsJSON(userId, cursor, count));
   }
 
   @Override
-  public <T> String fetchFriendshipJSON(final T sourceIdent, final T targetIdent) throws TwitterException {
-    return TwitterObjects.getJSON(fetchFriendship(sourceIdent, targetIdent));
+  public IDs getFollowersIDs(String screenName, long cursor) throws TwitterException {
+    return newIDs(getFollowersIDsJSON(screenName, cursor, 5000));
   }
 
   @Override
-  public String showFriendshipJSON(final long sourceId, final long targetId) throws TwitterException {
-    return fetchFriendshipJSON(sourceId, targetId);
+  public IDs getFollowersIDs(String screenName, long cursor, int count) throws TwitterException {
+    return newIDs(getFollowersIDsJSON(screenName, cursor, count));
   }
 
   @Override
-  public String showFriendshipJSON(final String sourceScreenName, final String targetScreenName) throws TwitterException {
-    return fetchFriendshipJSON(sourceScreenName, targetScreenName);
+  public Relationship showFriendship(long sourceId, long targetId) throws TwitterException {
+    return TwitterObjectFactory.createRelationship(getFriendshipJSON(sourceId, targetId));
   }
 
   @Override
-  public <T> List<String> fetchFriendsListJSON(final T ident, final long cursor, final int count, final boolean skipStatus, final boolean includeUserEntities)
+  public Relationship showFriendship(String sourceScreenName, String targetScreenName) throws TwitterException {
+    return TwitterObjectFactory.createRelationship(getFriendshipJSON(sourceScreenName, targetScreenName));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(long userId, long cursor) throws TwitterException {
+    return newPagableUser(getFriendsListJSON(userId, cursor, 200, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(long userId, long cursor, int count) throws TwitterException {
+    return newPagableUser(getFriendsListJSON(userId, cursor, 200, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(long userId, long cursor, int count, boolean skipStatus, boolean includeUserEntities) throws TwitterException {
+    return newPagableUser(getFriendsListJSON(userId, cursor, count, skipStatus, includeUserEntities));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(String screenName, long cursor) throws TwitterException {
+    return newPagableUser(getFriendsListJSON(screenName, cursor, 200, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(String screenName, long cursor, int count) throws TwitterException {
+    return newPagableUser(getFriendsListJSON(screenName, cursor, count, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFriendsList(String screenName, long cursor, int count, boolean skipStatus, boolean includeUserEntities)
       throws TwitterException {
-    return TwitterObjects.getJSONList(fetchFriendsList(ident, cursor, count, skipStatus, includeUserEntities));
+    return newPagableUser(getFriendsListJSON(screenName, cursor, count, skipStatus, includeUserEntities));
+  }
+
+
+  @Override
+  public PagableResponseList<User> getFollowersList(long userId, long cursor) throws TwitterException {
+    return newPagableUser(getFollowersListJSON(userId, cursor, 200, false, true));
   }
 
   @Override
-  public List<String> getFriendsListJSON(final long userId, final long cursor, final int count, final boolean skipStatus, final boolean includeUserEntities)
+  public PagableResponseList<User> getFollowersList(long userId, long cursor, int count) throws TwitterException {
+    return newPagableUser(getFollowersListJSON(userId, cursor, 200, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFollowersList(long userId, long cursor, int count, boolean skipStatus, boolean includeUserEntities)
       throws TwitterException {
-    return fetchFriendsListJSON(userId, cursor, count, skipStatus, includeUserEntities);
+    return newPagableUser(getFollowersListJSON(userId, cursor, count, skipStatus, includeUserEntities));
   }
 
   @Override
-  public List<String> getFriendsListJSON(final String screenName, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFriendsListJSON(screenName, cursor, count, skipStatus, includeUserEntities);
+  public PagableResponseList<User> getFollowersList(String screenName, long cursor) throws TwitterException {
+    return newPagableUser(getFollowersListJSON(screenName, cursor, 200, false, true));
   }
 
   @Override
-  public <T> List<String> fetchFollowersListJSON(final T ident, final long cursor, final int count, final boolean skipStatus, final boolean includeUserEntities)
+  public PagableResponseList<User> getFollowersList(String screenName, long cursor, int count) throws TwitterException {
+    return newPagableUser(getFollowersListJSON(screenName, cursor, count, false, true));
+  }
+
+  @Override
+  public PagableResponseList<User> getFollowersList(String screenName, long cursor, int count, boolean skipStatus, boolean includeUserEntities)
       throws TwitterException {
-    return TwitterObjects.getJSONList(fetchFollowersList(ident, cursor, count, skipStatus, includeUserEntities));
+    return newPagableUser(getFollowersListJSON(screenName, cursor, count, skipStatus, includeUserEntities));
+  }
+
+  /*
+   * FriendsFollowersResources
+   */
+
+  @Override
+  public abstract <T> String getFriendshipJSON(T sourceIdent, T targetIdent) throws TwitterException;
+
+  @Override
+  public String showFriendshipJSON(long sourceId, long targetId) throws TwitterException {
+    return getFriendshipJSON(sourceId, targetId);
   }
 
   @Override
-  public List<String> getFollowersListJSON(final long userId, final long cursor, final int count, final boolean skipStatus, final boolean includeUserEntities)
-      throws TwitterException {
-    return fetchFollowersListJSON(userId, cursor, count, skipStatus, includeUserEntities);
-  }
-
-  @Override
-  public List<String> getFollowersListJSON(final String screenName, final long cursor, final int count, final boolean skipStatus,
-      final boolean includeUserEntities) throws TwitterException {
-    return fetchFollowersListJSON(screenName, cursor, count, skipStatus, includeUserEntities);
+  public String showFriendshipJSON(String sourceScreenName, String targetScreenName) throws TwitterException {
+    return getFriendshipJSON(sourceScreenName, targetScreenName);
   }
 
   /*
@@ -776,210 +600,136 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   @Deprecated
-  public User createFriendship(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createFriendship(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createFriendship(final String screenName) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createFriendship(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createFriendship(final long userId, final boolean follow) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createFriendship(long userId, boolean follow) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createFriendship(final String screenName, final boolean follow) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createFriendship(String screenName, boolean follow) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyFriendship(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyFriendship(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyFriendship(final String screenName) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyFriendship(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Relationship updateFriendship(final long userId, final boolean enableDeviceNotification, final boolean retweets) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Relationship updateFriendship(long userId, boolean enableDeviceNotification, boolean retweets) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Relationship updateFriendship(final String screenName, final boolean enableDeviceNotification, final boolean retweets) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Relationship updateFriendship(String screenName, boolean enableDeviceNotification, boolean retweets) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Friendship> lookupFriendships(final long[] ids) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Friendship> lookupFriendships(long... ids) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Friendship> lookupFriendships(final String[] screenNames) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Friendship> lookupFriendships(String... screenNames) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getIncomingFriendships(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getIncomingFriendships(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getOutgoingFriendships(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getOutgoingFriendships(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getFriendsIDs(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getFriendsIDs(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getFollowersIDs(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getFollowersIDs(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public IDs getNoRetweetsFriendships() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   /*
    * UsersResources
    */
 
-
-  public abstract <T> ResponseList<User> fetchLookupUsers(final T idents) throws TwitterException;
-
   @Override
-  public <T> List<String> fetchLookupUsersJSON(final T idents) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchLookupUsers(idents));
+  public ResponseList<User> lookupUsers(long... ids) throws TwitterException {
+    return newUserResponseList(lookupUsersJSON(ids));
   }
 
   @Override
-  public List<String> searchUsersJSON(final String query, final int page) throws TwitterException {
-    return TwitterObjects.getJSONList(searchUsers(query, page));
+  public ResponseList<User> lookupUsers(String... screenNames) throws TwitterException {
+    return newUserResponseList(lookupUsersJSON(screenNames));
   }
 
   @Override
-  public ResponseList<User> lookupUsers(final long[] ids) throws TwitterException {
-    return fetchLookupUsers(ids);
+  public User showUser(long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(showUserJSON(userId));
   }
 
   @Override
-  public List<String> lookupUsersJSON(final long[] ids) throws TwitterException {
-    return fetchLookupUsersJSON(ids);
+  public User showUser(String screenName) throws TwitterException {
+    return TwitterObjectFactory.createUser(showUserJSON(screenName));
   }
 
   @Override
-  public ResponseList<User> lookupUsers(final String[] screenNames) throws TwitterException {
-    return fetchLookupUsers(screenNames);
+  public ResponseList<User> getContributees(long userId) throws TwitterException {
+    return newUserResponseList(getContributeesJSON(userId));
   }
 
   @Override
-  public List<String> lookupUsersJSON(final String[] screenNames) throws TwitterException {
-    return fetchLookupUsersJSON(screenNames);
-  }
-
-  public abstract <T> User fetchUser(final T ident) throws TwitterException;
-
-  @Override
-  public <T> String fetchUserJSON(final T ident) throws TwitterException {
-    return TwitterObjects.getJSON(fetchUser(ident));
+  public ResponseList<User> getContributees(String screenName) throws TwitterException {
+    return newUserResponseList(getContributeesJSON(screenName));
   }
 
   @Override
-  public User showUser(final long userId) throws TwitterException {
-    return fetchUser(userId);
+  public ResponseList<User> getContributors(long userId) throws TwitterException {
+    return newUserResponseList(getContributorsJSON(userId));
   }
 
   @Override
-  public String showUserJSON(final long userId) throws TwitterException {
-    return fetchUserJSON(userId);
-  }
-
-  @Override
-  public User showUser(final String screenName) throws TwitterException {
-    return fetchUser(screenName);
-  }
-
-  @Override
-  public String showUserJSON(final String screenName) throws TwitterException {
-    return fetchUserJSON(screenName);
-  }
-
-  public abstract <T> ResponseList<User> fetchContributees(final T ident) throws TwitterException;
-
-  @Override
-  public <T> List<String> fetchContributeesJSON(final T ident) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchContributees(ident));
-  }
-
-  @Override
-  public ResponseList<User> getContributees(final long userId) throws TwitterException {
-    return fetchContributees(userId);
-  }
-
-  @Override
-  public List<String> getContributeesJSON(final long userId) throws TwitterException {
-    return fetchContributeesJSON(userId);
-  }
-
-  @Override
-  public ResponseList<User> getContributees(final String screenName) throws TwitterException {
-    return fetchContributees(screenName);
-  }
-
-  @Override
-  public List<String> getContributeesJSON(final String screenName) throws TwitterException {
-    return fetchContributeesJSON(screenName);
-  }
-
-  public abstract <T> ResponseList<User> fetchContributors(final T ident) throws TwitterException;
-
-  @Override
-  public <T> List<String> fetchContributorsJSON(final T ident) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchContributees(ident));
-  }
-
-  @Override
-  public ResponseList<User> getContributors(final long userId) throws TwitterException {
-    return fetchContributors(userId);
-  }
-
-  @Override
-  public List<String> getContributorsJSON(final long userId) throws TwitterException {
-    return fetchContributorsJSON(userId);
-  }
-
-  @Override
-  public ResponseList<User> getContributors(final String screenName) throws TwitterException {
-    return fetchContributors(screenName);
-  }
-
-  @Override
-  public List<String> getContributorsJSON(final String screenName) throws TwitterException {
-    return fetchContributorsJSON(screenName);
+  public ResponseList<User> getContributors(String screenName) throws TwitterException {
+    return newUserResponseList(getContributorsJSON(screenName));
   }
 
   /*
@@ -989,200 +739,183 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public AccountSettings getAccountSettings() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public User verifyCredentials() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public AccountSettings updateAccountSettings(final Integer trendLocationWoeid, final Boolean sleepTimeEnabled, final String startSleepTime,
-      final String endSleepTime, final String timeZone, final String lang) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public AccountSettings updateAccountSettings(Integer trendLocationWoeid, Boolean sleepTimeEnabled, String startSleepTime, String endSleepTime,
+      String timeZone, String lang) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfile(final String name, final String url, final String location, final String description) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfile(String name, String url, String location, String description) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfileBackgroundImage(final File image, final boolean tile) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfileBackgroundImage(File image, boolean tile) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfileBackgroundImage(final InputStream image, final boolean tile) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfileBackgroundImage(InputStream image, boolean tile) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfileColors(final String profileBackgroundColor, final String profileTextColor, final String profileLinkColor,
-      final String profileSidebarFillColor, final String profileSidebarBorderColor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfileColors(String profileBackgroundColor, String profileTextColor, String profileLinkColor, String profileSidebarFillColor,
+      String profileSidebarBorderColor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfileImage(final File image) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfileImage(File image) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User updateProfileImage(final InputStream image) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User updateProfileImage(InputStream image) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public PagableResponseList<User> getBlocksList() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public PagableResponseList<User> getBlocksList(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public PagableResponseList<User> getBlocksList(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public IDs getBlocksIDs() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getBlocksIDs(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getBlocksIDs(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createBlock(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createBlock(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createBlock(final String screenName) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createBlock(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyBlock(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyBlock(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyBlock(final String screen_name) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyBlock(String screen_name) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public void removeProfileBanner() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public void updateProfileBanner(final File image) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public void updateProfileBanner(File image) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public void updateProfileBanner(final InputStream image) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public void updateProfileBanner(InputStream image) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createMute(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createMute(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User createMute(final String screenName) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User createMute(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyMute(final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyMute(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public User destroyMute(final String screenName) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public User destroyMute(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public IDs getMutesIDs(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public IDs getMutesIDs(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public PagableResponseList<User> getMutesList(final long cursor) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public PagableResponseList<User> getMutesList(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   /*
    * FavoritesResources
    */
 
-  public abstract <T> ResponseList<Status> fetchFavorites(final T ident, final Paging paging) throws TwitterException;
-
   @Override
-  public <T> List<String> fetchFavoritesJSON(final T ident, final Paging paging) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchFavorites(ident, paging));
+  public ResponseList<Status> getFavorites(long userId) throws TwitterException {
+    return newStatusResponseList(getFavoritesJSON(userId, new Paging()));
   }
 
   @Override
-  public ResponseList<Status> getFavorites(final long userId) throws TwitterException {
-    return fetchFavorites(userId, new Paging());
+  public ResponseList<Status> getFavorites(long userId, Paging paging) throws TwitterException {
+    return newStatusResponseList(getFavoritesJSON(userId, paging));
   }
 
   @Override
-  public ResponseList<Status> getFavorites(final long userId, final Paging paging) throws TwitterException {
-    return fetchFavorites(userId, paging);
+  public ResponseList<Status> getFavorites(String screenName) throws TwitterException {
+    return newStatusResponseList(getFavoritesJSON(screenName, new Paging()));
   }
 
   @Override
-  public List<String> getFavoritesJSON(final long userId, final Paging paging) throws TwitterException {
-    return fetchFavoritesJSON(userId, paging);
-  }
-
-  @Override
-  public ResponseList<Status> getFavorites(final String screenName) throws TwitterException {
-    return fetchFavorites(screenName, new Paging());
-  }
-
-  @Override
-  public ResponseList<Status> getFavorites(final String screenName, final Paging paging) throws TwitterException {
-    return fetchFavorites(screenName, paging);
-  }
-
-  @Override
-  public List<String> getFavoritesJSON(final String screenName, final Paging paging) throws TwitterException {
-    return fetchFavoritesJSON(screenName, paging);
+  public ResponseList<Status> getFavorites(String screenName, Paging paging) throws TwitterException {
+    return newStatusResponseList(getFavoritesJSON(screenName, paging));
   }
 
   /*
@@ -1192,125 +925,104 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public ResponseList<Status> getFavorites() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Status> getFavorites(final Paging paging) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<Status> getFavorites(Paging paging) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Status createFavorite(final long id) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status createFavorite(long id) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public Status destroyFavorite(final long id) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public Status destroyFavorite(long id) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   /*
    * ListsResources
    */
 
-  public abstract <T> ResponseList<UserList> fetchUserLists(final T ident, boolean reverse) throws TwitterException;
+  @Override
+  public abstract <T> List<String> getUserListsJSON(T ident, boolean reverse) throws TwitterException;
 
   @Override
-  public <T> List<String> fetchUserListsJSON(final T ident, boolean reverse) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserLists(ident, reverse));
+  public ResponseList<UserList> getUserLists(String listOwnerScreenName) throws TwitterException {
+    return newUserListResponseList(getUserListsJSON(listOwnerScreenName, false));
   }
 
   @Override
-  public ResponseList<UserList> getUserLists(final String listOwnerScreenName) throws TwitterException {
-    return fetchUserLists(listOwnerScreenName, false);
-  }
-
-  @Override
-  public ResponseList<UserList> getUserLists(final long listOwnerUserId) throws TwitterException {
-    return fetchUserLists(listOwnerUserId, false);
+  public ResponseList<UserList> getUserLists(long listOwnerUserId) throws TwitterException {
+    return newUserListResponseList(getUserListsJSON(listOwnerUserId, false));
   }
 
   @Override
   public ResponseList<UserList> getUserLists(String listOwnerScreenName, boolean reverse) throws TwitterException {
-    return fetchUserLists(listOwnerScreenName, reverse);
+    return newUserListResponseList(getUserListsJSON(listOwnerScreenName, reverse));
   }
 
   @Override
-  public List<String> getUserListsJSON(final String listOwnerScreenName, boolean reverse) throws TwitterException {
-    return fetchUserListsJSON(listOwnerScreenName, reverse);
+  public List<String> getUserListsJSON(String listOwnerScreenName, boolean reverse) throws TwitterException {
+    return getUserListsJSON(listOwnerScreenName, reverse);
   }
 
   @Override
   public ResponseList<UserList> getUserLists(long listOwnerUserId, boolean reverse) throws TwitterException {
-    return fetchUserLists(listOwnerUserId, reverse);
+    return newUserListResponseList(getUserListsJSON(listOwnerUserId, reverse));
   }
 
   @Override
-  public List<String> getUserListsJSON(final long listOwnerUserId, boolean reverse) throws TwitterException {
-    return fetchUserListsJSON(listOwnerUserId, reverse);
+  public List<String> getUserListsJSON(long listOwnerUserId, boolean reverse) throws TwitterException {
+    return getUserListsJSON(listOwnerUserId, reverse);
   }
 
 
-
-  public abstract <T> ResponseList<Status> fetchUserListStatuses(final T ident, final String slug, final Paging paging) throws TwitterException;
-
   @Override
-  public ResponseList<Status> getUserListStatuses(final long ownerId, final String slug, final Paging paging) throws TwitterException {
-    return fetchUserListStatuses(ownerId, slug, paging);
+  public ResponseList<Status> getUserListStatuses(long listId, Paging paging) throws TwitterException {
+    return newStatusResponseList(getUserListStatusesJSON(listId, paging));
   }
 
   @Override
-  public ResponseList<Status> getUserListStatuses(final String ownerScreenName, final String slug, final Paging paging) throws TwitterException {
-    return fetchUserListStatuses(ownerScreenName, slug, paging);
-  }
-
-
-
-  public abstract <T> PagableResponseList<UserList> fetchUserListMemberships(final T ident, final int count, final long cursor) throws TwitterException;
-
-  @Override
-  public PagableResponseList<UserList> getUserListMemberships(final long listMemberId, final long cursor) throws TwitterException {
-    return fetchUserListMemberships(listMemberId, 20, cursor);
+  public ResponseList<Status> getUserListStatuses(long ownerId, String slug, Paging paging) throws TwitterException {
+    return newStatusResponseList(getUserListStatusesJSON(ownerId, slug, paging));
   }
 
   @Override
-  public PagableResponseList<UserList> getUserListMemberships(final String listMemberScreenName, final long cursor) throws TwitterException {
-    return fetchUserListMemberships(listMemberScreenName, 20, cursor);
+  public ResponseList<Status> getUserListStatuses(String ownerScreenName, String slug, Paging paging) throws TwitterException {
+    return newStatusResponseList(getUserListStatusesJSON(ownerScreenName, slug, paging));
+  }
+
+  @Override
+  public PagableResponseList<UserList> getUserListMemberships(long listMemberId, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListMembershipsJSON(listMemberId, 20, cursor, false));
+  }
+
+  @Override
+  public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListMembershipsJSON(listMemberScreenName, 20, cursor, false));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListMemberships(long listMemberId, int count, long cursor) throws TwitterException {
-    return fetchUserListMemberships(listMemberId, count, cursor);
+    return newPagableUserList(getUserListMembershipsJSON(listMemberId, count, cursor, false));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, int count, long cursor) throws TwitterException {
-    return fetchUserListMemberships(listMemberScreenName, count, cursor);
+    return newPagableUserList(getUserListMembershipsJSON(listMemberScreenName, count, cursor, false));
   }
 
   @Override
-  public <T> List<String> fetchUserListMembershipsJSON(final T ident, final int count, final long cursor) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListMemberships(ident, count, cursor));
+  public PagableResponseList<User> getUserListSubscribers(long listId, int count, long cursor, boolean skipStatus) throws TwitterException {
+    return newPagableUser(getUserListSubscribersJSON(listId, count, cursor, skipStatus));
   }
-
-  @Override
-  public List<String> getUserListMembershipsJSON(final long listMemberId, final int count, final long cursor) throws TwitterException {
-    return fetchUserListMembershipsJSON(listMemberId, count, cursor);
-  }
-
-  @Override
-  public List<String> getUserListMembershipsJSON(final String listMemberScreenName, final int count, final long cursor) throws TwitterException {
-    return fetchUserListMembershipsJSON(listMemberScreenName, count, cursor);
-  }
-
-
-
-  public abstract <T> PagableResponseList<User> fetchUserListSubscribers(final T ident, final String slug, final int count, final long cursor,
-      boolean skipStatus) throws TwitterException;
 
   @Override
   public PagableResponseList<User> getUserListSubscribers(long listId, int count, long cursor) throws TwitterException {
@@ -1323,125 +1035,97 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
   @Override
-  public abstract PagableResponseList<User> getUserListSubscribers(long listId, int count, long cursor, boolean skipStatus) throws TwitterException;
-
-  @Override
   public PagableResponseList<User> getUserListSubscribers(long ownerId, String slug, long cursor) throws TwitterException {
-    return fetchUserListSubscribers(ownerId, slug, 5000, cursor, false);
+    return newPagableUser(getUserListSubscribersJSON(ownerId, slug, 5000, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListSubscribers(long ownerId, String slug, int count, long cursor) throws TwitterException {
-    return fetchUserListSubscribers(ownerId, slug, count, cursor, false);
+    return newPagableUser(getUserListSubscribersJSON(ownerId, slug, count, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListSubscribers(String ownerScreenName, String slug, long cursor) throws TwitterException {
-    return fetchUserListSubscribers(ownerScreenName, slug, 5000, cursor, false);
+    return newPagableUser(getUserListSubscribersJSON(ownerScreenName, slug, 5000, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListSubscribers(String ownerScreenName, String slug, int count, long cursor) throws TwitterException {
-    return fetchUserListSubscribers(ownerScreenName, slug, count, cursor, false);
+    return newPagableUser(getUserListSubscribersJSON(ownerScreenName, slug, count, cursor, false));
   }
 
   @Override
-  public PagableResponseList<User> getUserListSubscribers(final long ownerId, final String slug, final int count, final long cursor, boolean skipStatus)
+  public PagableResponseList<User> getUserListSubscribers(long ownerId, String slug, int count, long cursor, boolean skipStatus) throws TwitterException {
+    return newPagableUser(getUserListSubscribersJSON(ownerId, slug, count, cursor, skipStatus));
+  }
+
+  @Override
+  public PagableResponseList<User> getUserListSubscribers(String ownerScreenName, String slug, int count, long cursor, boolean skipStatus)
       throws TwitterException {
-    return fetchUserListSubscribers(ownerId, slug, count, cursor, skipStatus);
+    return newPagableUser(getUserListSubscribersJSON(ownerScreenName, slug, count, cursor, skipStatus));
   }
 
   @Override
-  public PagableResponseList<User> getUserListSubscribers(final String ownerScreenName, final String slug, final int count, final long cursor,
-      boolean skipStatus) throws TwitterException {
-    return fetchUserListSubscribers(ownerScreenName, slug, count, cursor, skipStatus);
+  public abstract <T> String getUserListSubscriptionJSON(T ident, String slug, long userId) throws TwitterException;
+
+  @Override
+  public User showUserListSubscription(long listId, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(showUserListSubscriptionJSON(listId, userId));
   }
 
   @Override
-  public List<String> getUserListSubscribersJSON(final long listId, final int count, final long cursor, boolean skipStatus) throws TwitterException {
-    return TwitterObjects.getJSONList(getUserListSubscribers(listId, count, cursor, skipStatus));
+  public User showUserListSubscription(long ownerId, String slug, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(getUserListSubscriptionJSON(ownerId, slug, userId));
   }
 
   @Override
-  public <T> List<String> fetchUserListSubscribersJSON(final T ident, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListSubscribers(ident, slug, count, cursor, skipStatus));
+  public String showUserListSubscriptionJSON(long ownerId, String slug, long userId) throws TwitterException {
+    return getUserListSubscriptionJSON(ownerId, slug, userId);
   }
 
   @Override
-  public List<String> getUserListSubscribersJSON(final long ownerId, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListSubscribersJSON(ownerId, slug, count, cursor, skipStatus);
+  public User showUserListSubscription(String ownerScreenName, String slug, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(getUserListSubscriptionJSON(ownerScreenName, slug, userId));
   }
 
   @Override
-  public List<String> getUserListSubscribersJSON(final String ownerScreenName, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListSubscribersJSON(ownerScreenName, slug, count, cursor, skipStatus);
-  }
-
-
-
-  public abstract <T> User fetchUserListSubscription(final T ident, final String slug, final long userId) throws TwitterException;
-
-  @Override
-  public <T> String fetchUserListSubscriptionJSON(final T ident, final String slug, final long userId) throws TwitterException {
-    return TwitterObjects.getJSON(fetchUserListSubscription(ident, slug, userId));
+  public String showUserListSubscriptionJSON(String ownerScreenName, String slug, long userId) throws TwitterException {
+    return getUserListSubscriptionJSON(ownerScreenName, slug, userId);
   }
 
   @Override
-  public User showUserListSubscription(final long ownerId, final String slug, final long userId) throws TwitterException {
-    return fetchUserListSubscription(ownerId, slug, userId);
+  public abstract <T> String getUserListMembershipJSON(T ident, String slug, long userId) throws TwitterException;
+
+  @Override
+  public User showUserListMembership(long ownerId, String slug, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(getUserListMembershipJSON(ownerId, slug, userId));
   }
 
   @Override
-  public String showUserListSubscriptionJSON(final long ownerId, final String slug, final long userId) throws TwitterException {
-    return fetchUserListSubscriptionJSON(ownerId, slug, userId);
+  public String showUserListMembershipJSON(long ownerId, String slug, long userId) throws TwitterException {
+    return getUserListMembershipJSON(ownerId, slug, userId);
   }
 
   @Override
-  public User showUserListSubscription(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
-    return fetchUserListSubscription(ownerScreenName, slug, userId);
+  public User showUserListMembership(long listId, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(showUserListMembershipJSON(listId, userId));
   }
 
   @Override
-  public String showUserListSubscriptionJSON(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
-    return fetchUserListSubscriptionJSON(ownerScreenName, slug, userId);
-  }
-
-
-
-  public abstract <T> User fetchUserListMembership(final T ident, final String slug, final long userId) throws TwitterException;
-
-  @Override
-  public <T> String fetchUserListMembershipJSON(final T ident, final String slug, final long userId) throws TwitterException {
-    return TwitterObjects.getJSON(fetchUserListMembership(ident, slug, userId));
+  public User showUserListMembership(String ownerScreenName, String slug, long userId) throws TwitterException {
+    return TwitterObjectFactory.createUser(getUserListMembershipJSON(ownerScreenName, slug, userId));
   }
 
   @Override
-  public User showUserListMembership(final long ownerId, final String slug, final long userId) throws TwitterException {
-    return fetchUserListMembership(ownerId, slug, userId);
+  public String showUserListMembershipJSON(String ownerScreenName, String slug, long userId) throws TwitterException {
+    return getUserListMembershipJSON(ownerScreenName, slug, userId);
   }
+
 
   @Override
-  public String showUserListMembershipJSON(final long ownerId, final String slug, final long userId) throws TwitterException {
-    return fetchUserListMembershipJSON(ownerId, slug, userId);
+  public PagableResponseList<User> getUserListMembers(long listId, int count, long cursor, boolean skipStatus) throws TwitterException {
+    return newPagableUser(getUserListMembersJSON(listId, count, cursor, skipStatus));
   }
-
-  @Override
-  public User showUserListMembership(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
-    return fetchUserListMembership(ownerScreenName, slug, userId);
-  }
-
-  @Override
-  public String showUserListMembershipJSON(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
-    return fetchUserListMembershipJSON(ownerScreenName, slug, userId);
-  }
-
-
-
-  public abstract <T> PagableResponseList<User> fetchUserListMembers(final T ident, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException;
 
   @Override
   public PagableResponseList<User> getUserListMembers(long listId, int count, long cursor) throws TwitterException {
@@ -1455,160 +1139,90 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   public PagableResponseList<User> getUserListMembers(long ownerId, String slug, long cursor) throws TwitterException {
-    return fetchUserListMembers(ownerId, slug, 5000, cursor, false);
+    return newPagableUser(getUserListMembersJSON(ownerId, slug, 5000, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListMembers(long ownerId, String slug, int count, long cursor) throws TwitterException {
-    return fetchUserListMembers(ownerId, slug, count, cursor, false);
+    return newPagableUser(getUserListMembersJSON(ownerId, slug, count, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListMembers(String ownerScreenName, String slug, long cursor) throws TwitterException {
-    return fetchUserListMembers(ownerScreenName, slug, 5000, cursor, false);
+    return newPagableUser(getUserListMembersJSON(ownerScreenName, slug, 5000, cursor, false));
   }
 
   @Override
   public PagableResponseList<User> getUserListMembers(String ownerScreenName, String slug, int count, long cursor) throws TwitterException {
-    return fetchUserListMembers(ownerScreenName, slug, count, cursor, false);
+    return newPagableUser(getUserListMembersJSON(ownerScreenName, slug, count, cursor, false));
   }
 
   @Override
-  public <T> List<String> fetchUserListMembersJSON(final T ident, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListMembers(ident, slug, count, cursor, skipStatus));
+  public PagableResponseList<User> getUserListMembers(long ownerId, String slug, int count, long cursor, boolean skipStatus) throws TwitterException {
+    return newPagableUser(getUserListMembersJSON(ownerId, slug, count, cursor, skipStatus));
   }
 
   @Override
-  public PagableResponseList<User> getUserListMembers(final long ownerId, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListMembers(ownerId, slug, count, cursor, skipStatus);
+  public PagableResponseList<User> getUserListMembers(String ownerScreenName, String slug, int count, long cursor, boolean skipStatus) throws TwitterException {
+    return newPagableUser(getUserListMembersJSON(ownerScreenName, slug, count, cursor, skipStatus));
   }
 
   @Override
-  public List<String> getUserListMembersJSON(final long ownerId, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListMembersJSON(ownerId, slug, count, cursor, skipStatus);
+  public abstract String showUserListJSON(long listId) throws TwitterException;
+
+  @Override
+  public UserList showUserList(long listId) throws TwitterException {
+    return TwitterObjectFactory.createUserList(showUserListJSON(listId));
   }
 
   @Override
-  public PagableResponseList<User> getUserListMembers(final String ownerScreenName, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListMembers(ownerScreenName, slug, count, cursor, skipStatus);
+  public UserList showUserList(long ownerId, String slug) throws TwitterException {
+    return TwitterObjectFactory.createUserList(showUserListJSON(ownerId, slug));
   }
 
   @Override
-  public List<String> getUserListMembersJSON(final String ownerScreenName, final String slug, final int count, final long cursor, boolean skipStatus)
-      throws TwitterException {
-    return fetchUserListMembersJSON(ownerScreenName, slug, count, cursor, skipStatus);
-  }
-
-
-
-  public abstract <T> UserList fetchUserList(final T ident, final String slug) throws TwitterException;
-
-  @Override
-  public UserList showUserList(final long ownerId, final String slug) throws TwitterException {
-    return fetchUserList(ownerId, slug);
+  public UserList showUserList(String ownerScreenName, String slug) throws TwitterException {
+    return TwitterObjectFactory.createUserList(showUserListJSON(ownerScreenName, slug));
   }
 
   @Override
-  public UserList showUserList(final String ownerScreenName, final String slug) throws TwitterException {
-    return fetchUserList(ownerScreenName, slug);
+  public PagableResponseList<UserList> getUserListSubscriptions(String listSubscriberScreenName, int count, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListSubscriptionsJSON(listSubscriberScreenName, count, cursor));
   }
 
   @Override
-  public <T> String fetchUserListJSON(final T ident, final String slug) throws TwitterException {
-    return TwitterObjects.getJSON(fetchUserList(ident, slug));
-  }
-
-  @Override
-  public String showUserListJSON(final long ownerId, final String slug) throws TwitterException {
-    return fetchUserListJSON(ownerId, slug);
-  }
-
-  @Override
-  public String showUserListJSON(final String ownerScreenName, final String slug) throws TwitterException {
-    return fetchUserListJSON(ownerScreenName, slug);
-  }
-
-
-
-  public abstract <T> PagableResponseList<UserList> fetchUserListSubscriptions(final T ident, final int count, final long cursor) throws TwitterException;
-
-  @Override
-  public PagableResponseList<UserList> getUserListSubscriptions(final String listSubscriberScreenName, final int count, final long cursor)
-      throws TwitterException {
-    return fetchUserListSubscriptions(listSubscriberScreenName, count, cursor);
-  }
-
-  @Override
-  public PagableResponseList<UserList> getUserListSubscriptions(final long listSubscriberId, final int count, final long cursor) throws TwitterException {
-    return fetchUserListSubscriptions(listSubscriberId, count, cursor);
+  public PagableResponseList<UserList> getUserListSubscriptions(long listSubscriberId, int count, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListSubscriptionsJSON(listSubscriberId, count, cursor));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListSubscriptions(String listSubscriberScreenName, long cursor) throws TwitterException {
-    return fetchUserListSubscriptions(listSubscriberScreenName, 1000, cursor);
+    return newPagableUserList(getUserListSubscriptionsJSON(listSubscriberScreenName, 1000, cursor));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListSubscriptions(long listSubscriberId, long cursor) throws TwitterException {
-    return fetchUserListSubscriptions(listSubscriberId, 1000, cursor);
+    return newPagableUserList(getUserListSubscriptionsJSON(listSubscriberId, 1000, cursor));
   }
 
   @Override
-  public <T> List<String> fetchUserListSubscriptionsJSON(final T ident, int count, final long cursor) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListSubscriptions(ident, count, cursor));
+  public PagableResponseList<UserList> getUserListsOwnerships(String listOwnerScreenName, int count, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListsOwnershipsJSON(listOwnerScreenName, count, cursor));
   }
 
   @Override
-  public List<String> getUserListSubscriptionsJSON(final String listSubscriberScreenName, final int count, final long cursor) throws TwitterException {
-    return fetchUserListSubscriptionsJSON(listSubscriberScreenName, count, cursor);
-  }
-
-  @Override
-  public List<String> getUserListSubscriptionsJSON(final long listSubscriberId, final int count, final long cursor) throws TwitterException {
-    return fetchUserListSubscriptionsJSON(listSubscriberId, count, cursor);
-  }
-
-
-
-  public abstract <T> PagableResponseList<UserList> fetchUserListsOwnerships(final T ident, final int count, final long cursor) throws TwitterException;
-
-  @Override
-  public PagableResponseList<UserList> getUserListsOwnerships(final String listOwnerScreenName, final int count, final long cursor) throws TwitterException {
-    return fetchUserListsOwnerships(listOwnerScreenName, count, cursor);
-  }
-
-  @Override
-  public PagableResponseList<UserList> getUserListsOwnerships(final long listOwnerId, final int count, final long cursor) throws TwitterException {
-    return fetchUserListsOwnerships(listOwnerId, count, cursor);
+  public PagableResponseList<UserList> getUserListsOwnerships(long listOwnerId, int count, long cursor) throws TwitterException {
+    return newPagableUserList(getUserListsOwnershipsJSON(listOwnerId, count, cursor));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListsOwnerships(String listOwnerScreenName, long cursor) throws TwitterException {
-    return fetchUserListsOwnerships(listOwnerScreenName, 1000, cursor);
+    return newPagableUserList(getUserListsOwnershipsJSON(listOwnerScreenName, 1000, cursor));
   }
 
   @Override
   public PagableResponseList<UserList> getUserListsOwnerships(long listOwnerId, long cursor) throws TwitterException {
-    return fetchUserListsOwnerships(listOwnerId, 1000, cursor);
-  }
-
-  @Override
-  public <T> List<String> fetchUserListsOwnershipsJSON(final T ident, final int count, final long cursor) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListsOwnerships(ident, count, cursor));
-  }
-
-  @Override
-  public List<String> getUserListsOwnershipsJSON(final String listOwnerScreenName, final int count, final long cursor) throws TwitterException {
-    return fetchUserListsOwnershipsJSON(listOwnerScreenName, count, cursor);
-  }
-
-  @Override
-  public List<String> getUserListsOwnershipsJSON(final long listOwnerId, final int count, final long cursor) throws TwitterException {
-    return fetchUserListsOwnershipsJSON(listOwnerId, count, cursor);
+    return newPagableUserList(getUserListsOwnershipsJSON(listOwnerId, 1000, cursor));
   }
 
   /*
@@ -1623,211 +1237,207 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
 
   @Override
   @Deprecated
-  public PagableResponseList<UserList> getUserListMemberships(final String listMemberScreenName, final long cursor, final boolean filterToOwnedLists)
-      throws TwitterException {
+  public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, long cursor, boolean filterToOwnedLists) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public PagableResponseList<UserList> getUserListMemberships(final long listMemberId, final long cursor, final boolean filterToOwnedLists)
-      throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public PagableResponseList<UserList> getUserListMemberships(long listMemberId, long cursor, boolean filterToOwnedLists) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public PagableResponseList<UserList> getUserListMemberships(String listMemberScreenName, int count, long cursor, boolean filterToOwnedLists)
       throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public PagableResponseList<UserList> getUserListMemberships(long listMemberId, int count, long cursor, boolean filterToOwnedLists) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public PagableResponseList<UserList> getUserListMemberships(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMember(long ownerId, String slug, long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMember(long ownerId, String slug) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMembers(long ownerId, long[] userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMembers(long ownerId, String[] userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMember(String ownerScreenName, String slug, long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListSubscription(long ownerId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListSubscription(long ownerId, String slug) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListSubscription(String ownerScreenName, String slug) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListSubscription(long ownerId, String slug) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListSubscription(String ownerScreenName, String slug) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMember(long ownerId, long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(long ownerId, String... userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(long ownerId, long... userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(long ownerId, String slug, long... userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(String ownerScreenName, String slug, long... userIds) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(long ownerId, String slug, String... screenNames) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMembers(String ownerScreenName, String slug, String... screenNames) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMembers(String ownerScreenName, String slug, String[] screenNames) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList destroyUserListMember(long ownerId, long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public UserList createUserListMember(long ownerId, String slug, long userId) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public PagableResponseList<UserList> getUserListMemberships(final long cursor) throws TwitterException {
+  public UserList createUserListMember(String ownerScreenName, String slug, long userId) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList destroyUserListMember(final long ownerId, final String slug, final long userId) throws TwitterException {
+  public UserList destroyUserList(long ownerId) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList destroyUserListMember(final long ownerId, final String slug) throws TwitterException {
+  public UserList destroyUserList(long ownerId, String slug) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList destroyUserListMembers(final long ownerId, final long[] userIds) throws TwitterException {
+  public UserList destroyUserList(String ownerScreenName, String slug) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList destroyUserListMembers(final long ownerId, final String[] userIds) throws TwitterException {
+  public UserList destroyUserListSubscription(long id) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList destroyUserListMember(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
+  public UserList updateUserList(long ownerId, String slug, String newListName, boolean isPublicList, String newDescription) throws TwitterException {
     throw new TwitterException(UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList createUserListSubscription(final long ownerId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public UserList updateUserList(String ownerScreenName, String slug, String newListName, boolean isPublicList, String newDescription) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList createUserListSubscription(final long ownerId, final String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public UserList createUserList(String listName, boolean isPublicList, String description) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public UserList createUserListSubscription(final String ownerScreenName, final String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserListSubscription(final long ownerId, final String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserListSubscription(final String ownerScreenName, String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMember(final long ownerId, final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final long ownerId, final String[] userIds) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final long ownerId, final long[] userIds) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final long ownerId, final String slug, final long[] userIds) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final String ownerScreenName, final String slug, final long[] userIds) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final long ownerId, final String slug, final String[] screenNames) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMembers(final String ownerScreenName, final String slug, final String[] screenNames) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserListMembers(final String ownerScreenName, final String slug, final String[] screenNames) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserListMember(final long ownerId, final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMember(final long ownerId, final String slug, final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserListMember(final String ownerScreenName, final String slug, final long userId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserList(final long ownerId) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserList(final long ownerId, final String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserList(final String ownerScreenName, final String slug) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList destroyUserListSubscription(final long id) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList updateUserList(final long ownerId, final String slug, final String newListName, final boolean isPublicList, final String newDescription)
-      throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList updateUserList(final String ownerScreenName, final String slug, final String newListName, final boolean isPublicList,
-      final String newDescription) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList createUserList(final String listName, final boolean isPublicList, final String description) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
-  }
-
-  @Override
-  @Deprecated
-  public UserList updateUserList(final long id, final String listName, final boolean isPublicList, final String description) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public UserList updateUserList(long id, String listName, boolean isPublicList, String description) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
 
@@ -1835,26 +1445,24 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    * PlacesGeoResources
    */
 
-
   @Override
-  public String getGeoDetailsJSON(final String placeId) throws TwitterException {
-    return TwitterObjects.getJSON(getGeoDetails(placeId));
+  public Place getGeoDetails(String placeId) throws TwitterException {
+    return TwitterObjectFactory.createPlace(getGeoDetailsJSON(placeId));
   }
 
   @Override
-  public List<String> reverseGeoCodeJSON(final GeoQuery query) throws TwitterException {
-    return TwitterObjects.getJSONList(reverseGeoCode(query));
+  public ResponseList<Place> reverseGeoCode(GeoQuery query) throws TwitterException {
+    return newPlaceResponseList(reverseGeoCodeJSON(query));
   }
 
   @Override
-  public List<String> searchPlacesJSON(final GeoQuery query) throws TwitterException {
-    return TwitterObjects.getJSONList(searchPlaces(query));
+  public ResponseList<Place> searchPlaces(GeoQuery query) throws TwitterException {
+    return newPlaceResponseList(searchPlacesJSON(query));
   }
 
   @Override
-  public List<String> getSimilarPlacesJSON(final GeoLocation location, final String name, final String containedWithin, final String streetAddress)
-      throws TwitterException {
-    return TwitterObjects.getJSONList(getSimilarPlaces(location, name, containedWithin, streetAddress));
+  public ResponseList<Place> getSimilarPlaces(GeoLocation location, String name, String containedWithin, String streetAddress) throws TwitterException {
+    return newPlaceResponseList(getSimilarPlacesJSON(location, name, containedWithin, streetAddress));
   }
 
   /*
@@ -1862,23 +1470,22 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
    */
 
   @Override
-  public String getPlaceTrendsJSON(final int woeid) throws TwitterException {
-    return TwitterObjects.getJSON(getPlaceTrends(woeid));
+  public abstract String getPlaceTrendsJSON(int woeid) throws TwitterException;
+
+  @Override
+  public Trends getPlaceTrends(int woeid) throws TwitterException {
+    return TwitterObjectFactory.createTrends(getPlaceTrendsJSON(woeid));
   }
 
   @Override
-  public String getAvailableTrendsJSON() throws TwitterException {
-
-    return TwitterObjects.getJSON(getAvailableTrends());
+  public ResponseList<Location> getClosestTrends(GeoLocation location) throws TwitterException {
+    return newLocationResponseList(getClosestTrendsJSON(location));
   }
-
 
   @Override
-  public String getClosestTrendsJSON(final GeoLocation location) throws TwitterException {
-
-    return TwitterObjects.getJSON(getClosestTrends(location));
+  public ResponseList<Location> getAvailableTrends() throws TwitterException {
+    return newLocationResponseList(getAvailableTrendsJSON());
   }
-
 
   /*
    * HelpResources
@@ -1887,55 +1494,31 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public TwitterAPIConfiguration getAPIConfiguration() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
-  public ResponseList<Language> getLanguages() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+  public ResponseList<HelpResources.Language> getLanguages() throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public String getPrivacyPolicy() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public String getTermsOfService() throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
   @Override
   @Deprecated
   public UploadedMedia uploadMedia(String fileName, InputStream media) throws TwitterException {
-    throw new TwitterException(UNSUPPORTED_METHOD);
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
-
-
-
-  @Override
-  public List<String> getUserListStatusesJSON(final long listId, final Paging paging) throws TwitterException {
-    return TwitterObjects.getJSONList(getUserListStatuses(listId, paging));
-  }
-
-  @Override
-  public <T> List<String> fetchUserListStatusesJSON(final T ident, final String slug, final Paging paging) throws TwitterException {
-    return TwitterObjects.getJSONList(fetchUserListStatuses(ident, slug, paging));
-  }
-
-  @Override
-  public List<String> getUserListStatusesJSON(final long ownerId, final String slug, final Paging paging) throws TwitterException {
-    return fetchUserListStatusesJSON(ownerId, slug, paging);
-  }
-
-  @Override
-  public List<String> getUserListStatusesJSON(final String ownerScreenName, final String slug, final Paging paging) throws TwitterException {
-    return fetchUserListStatusesJSON(ownerScreenName, slug, paging);
-  }
-
-
 
 }

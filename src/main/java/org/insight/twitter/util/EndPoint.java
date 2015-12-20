@@ -1,14 +1,13 @@
-package org.insight.twitter.multi;
+package org.insight.twitter.util;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
- * Container for different Endpoint Names, and priority queues. Uses Enum Singleton pattern because we only want 1 global instance of each endpoint+bot. As far
- * as Twitter is concerned, there is 1 Ratelimit per endpoint, per access token.
+ * Container for different Endpoint Names and Queues.
  */
 
-public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
+public enum EndPoint implements ApplicationOnlySupport {
   /*
    * TimelinesResources
    */
@@ -284,7 +283,15 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
     public String toString() {
       return "/trends/closest";
     }
-  };
+  },
+  APPLICATION_RATE_LIMIT_STATUS {
+    @Override
+    public String toString() {
+      return "/application/rate_limit_status";
+    }
+  }
+
+  ;
 
   /*
    * Define new Endpoints in the same way: RESOURCE_ENDPOINT {
@@ -292,28 +299,14 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
    * @Override public String toString() { return "/resource/endpoint"; } }
    */
 
-  // Make a queue for each endpoint:
-  private static final Map<String, BotQueue> BOT_QUEUES = new ConcurrentHashMap<>();
-
-  static {
-    for (EndPoint endpoint : EndPoint.values()) {
-      BOT_QUEUES.put(endpoint.toString(), new BotQueue(endpoint));
-    }
-  }
-
-  @Override
-  public BotQueue getBotQueue() {
-    return BOT_QUEUES.get(this.toString());
-  }
-
   // Default: Most endpoints have application only calls.
   @Override
   public boolean hasApplicationOnlySupport() {
     return true;
   }
 
-  public static EndPoint fromString(final String resource) {
-    if (resource != null) {
+  public static EndPoint fromString(String resource) {
+    if (null != resource) {
       for (EndPoint e : EndPoint.values()) {
         if (resource.equalsIgnoreCase(e.toString())) {
           return e;
@@ -322,11 +315,19 @@ public enum EndPoint implements GetBotQueue, ApplicationOnlySupport {
     }
     return null;
   }
-}
 
+  public static EndPoint[] fromGroup(String... groups) {
+    List<EndPoint> endpoints = new ArrayList<>();
+    for (String group : groups) {
+      for (EndPoint e : EndPoint.values()) {
+        if (e.toString().contains(group)) {
+          endpoints.add(e);
+        }
+      }
+    }
+    return endpoints.toArray(new EndPoint[endpoints.size()]);
+  }
 
-interface GetBotQueue {
-  BotQueue getBotQueue();
 }
 
 

@@ -10,6 +10,9 @@ http.retryIntervalSecs=5
 
 ## Example Configuration:
 
+#RabbitMQ instance:
+rabbitmq=127.0.0.1
+
 # Main Application (Common to all bots, and Application Only Authentication +180 on many endpoints): 
 oauth.consumerKey= ...
 oauth.consumerSecret= ...
