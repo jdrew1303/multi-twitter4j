@@ -16,8 +16,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -135,7 +138,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     List<List<Long>> batches = TwitterObjects.partitionList(new ArrayList<Long>(uniqueIds), 100);
 
     ExecutorService executor = Executors.newWorkStealingPool();
-    List<Callable<Map<Long, String>>> callables = new ArrayList<Callable<Map<Long, String>>>();
+    ExecutorCompletionService<Map<Long, String>> completionService = new ExecutorCompletionService<Map<Long, String>>(executor);
 
     for (List<Long> batch : batches) {
       Callable<Map<Long, String>> c = () -> {
@@ -143,20 +146,22 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
           return mt.lookupJSON(TwitterObjects.toPrimitive(batch));
         }
       };
-      callables.add(c);
+      completionService.submit(c);
     }
 
-    try {
-      executor.invokeAll(callables).stream().map(future -> {
-        try {
-          return future.get();
-        } catch (Exception e) {
-          throw new IllegalStateException(e);
-        }
-      }).forEach(result -> result.forEach(action)); // Apply an action to each tweet
-    } catch (IllegalStateException | InterruptedException e) {
-      throw new TwitterException(e);
+    for (int i = 0; i < batches.size(); ++i) {
+      try {
+        final Future<Map<Long, String>> future = completionService.take();
+        final Map<Long, String> content = future.get();
+        content.forEach(action); // Apply an action to each tweet
+      } catch (ExecutionException e) {
+        e.printStackTrace();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
     }
+
   }
 
   /*
@@ -175,7 +180,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     List<List<T>> batches = TwitterObjects.partitionList(new ArrayList<T>(unique_list), 100);
 
     ExecutorService executor = Executors.newWorkStealingPool();
-    List<Callable<List<String>>> callables = new ArrayList<Callable<List<String>>>();
+    ExecutorCompletionService<List<String>> completionService = new ExecutorCompletionService<List<String>>(executor);
 
     for (List<T> batch : batches) {
       Callable<List<String>> c = () -> {
@@ -190,21 +195,22 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
           }
         }
       };
-      callables.add(c);
+      completionService.submit(c);
     }
 
-    try {
-      executor.invokeAll(callables).stream().map(future -> {
-        try {
-          return future.get();
-        } catch (Exception e) {
-          throw new IllegalStateException(e);
-        }
-      }).flatMap(List::stream).forEach(action); // Apply action to each retrieved user
-
-    } catch (IllegalStateException | InterruptedException e) {
-      throw new TwitterException(e);
+    for (int i = 0; i < batches.size(); ++i) {
+      try {
+        final Future<List<String>> future = completionService.take();
+        final List<String> content = future.get();
+        content.forEach(action); // Apply an action to each user
+      } catch (ExecutionException e) {
+        e.printStackTrace();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
     }
+
   }
 
   /*

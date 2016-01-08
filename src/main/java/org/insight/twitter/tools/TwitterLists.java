@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.insight.twitter.MultiTwitter;
+import org.insight.twitter.util.SetComparison;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -43,6 +44,37 @@ public class TwitterLists {
     try (MultiTwitter multiTwitter = new MultiTwitter()) {
       return multiTwitter.getUserListsOwnerships(user, 1000, -1);
     }
+  }
+
+  /*
+   * Compare Lists:
+   */
+
+  public SetComparison<Long> compareLists(long xList, long yList) {
+
+    List<String> xUsers = new ArrayList<String>();
+    List<String> yUsers = new ArrayList<String>();
+
+    try (MultiTwitter multiTwitter = new MultiTwitter()) {
+
+      xUsers.addAll(multiTwitter.cursor().getBulkUserListMembers(xList));
+      System.out.println(xUsers.size());
+      yUsers.addAll(multiTwitter.cursor().getBulkUserListMembers(yList));
+      System.out.println(yUsers.size());
+
+    } catch (TwitterException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+
+    System.out.println(TwitterObjects.getUserJsonIDs(xUsers));
+    System.out.println(TwitterObjects.getUserJsonIDs(yUsers));
+
+    SetComparison<Long> changes =
+        SetComparison.findChanges(new HashSet<Long>(TwitterObjects.getUserJsonIDs(xUsers)), new HashSet<Long>(TwitterObjects.getUserJsonIDs(yUsers)));
+
+    return changes;
   }
 
   /*

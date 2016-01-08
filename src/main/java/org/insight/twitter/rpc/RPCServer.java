@@ -22,12 +22,12 @@ public class RPCServer {
     // Bots:
     Set<String> bots = RPCServer.getConfiguredBots();
 
-    EndPoint[] endpoints = new EndPoint[] { EndPoint.USERS_LOOKUP, EndPoint.LISTS_SHOW };
+    //EndPoint[] endpoints = new EndPoint[] { EndPoint.STATUSES_LOOKUP };
 
     // By Group "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
     //EndPoint[] endpoints = EndPoint.fromGroup("/statuses/");
 
-    //EndPoint[] endpoints = EndPoint.values();
+    EndPoint[] endpoints = EndPoint.values();
 
     // Keep a reference to workers for checking rate limits:
     Set<TwitterWorker> workers = new HashSet<TwitterWorker>();

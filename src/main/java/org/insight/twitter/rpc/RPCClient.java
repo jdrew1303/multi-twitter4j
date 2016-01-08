@@ -1,8 +1,7 @@
 package org.insight.twitter.rpc;
 
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -34,9 +33,11 @@ public class RPCClient {
 
   public RPCClient() throws IOException, TimeoutException {
 
-    Reader r = new FileReader("twitter4j.properties");
     Properties properties = new Properties();
-    properties.load(r);
+    ClassLoader loader = Thread.currentThread().getContextClassLoader();
+    try (InputStream resourceStream = loader.getResourceAsStream("twitter4j.properties")) {
+      properties.load(resourceStream);
+    }
 
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(properties.getProperty("rabbitmq"));
