@@ -118,6 +118,9 @@ public enum EndPoint implements ApplicationOnlySupport {
       return false;
     }
   },
+  /*
+   * DEPRECATE!
+
   USERS_CONTRIBUTEES {
     @Override
     public String toString() {
@@ -140,6 +143,8 @@ public enum EndPoint implements ApplicationOnlySupport {
       return false;
     }
   },
+
+  */
 
   /*
    * FavoritesResources
@@ -284,6 +289,11 @@ public enum EndPoint implements ApplicationOnlySupport {
       return "/trends/closest";
     }
   },
+
+  /*
+   * Rate Limits
+   */
+
   APPLICATION_RATE_LIMIT_STATUS {
     @Override
     public String toString() {

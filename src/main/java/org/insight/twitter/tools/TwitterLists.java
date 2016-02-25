@@ -27,7 +27,7 @@ public class TwitterLists {
   public final Twitter ownerTwitter;
 
   public TwitterLists() {
-    // With Write Permissions:
+    // Account with Write Permissions:
     ownerTwitter = new TwitterFactory("bot.owner").getInstance();
   }
 
@@ -56,17 +56,14 @@ public class TwitterLists {
     List<String> yUsers = new ArrayList<String>();
 
     try (MultiTwitter multiTwitter = new MultiTwitter()) {
-
       xUsers.addAll(multiTwitter.cursor().getBulkUserListMembers(xList));
       System.out.println(xUsers.size());
       yUsers.addAll(multiTwitter.cursor().getBulkUserListMembers(yList));
       System.out.println(yUsers.size());
-
     } catch (TwitterException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-
 
     System.out.println(TwitterObjects.getUserJsonIDs(xUsers));
     System.out.println(TwitterObjects.getUserJsonIDs(yUsers));

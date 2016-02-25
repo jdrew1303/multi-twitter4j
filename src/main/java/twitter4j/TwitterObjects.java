@@ -254,6 +254,21 @@ public class TwitterObjects {
   /*
    * List of IDs from List of Statuses
    */
+
+  public static List<Long> getTweetJSONIDs(List<String> statuses) {
+    List<Long> ids = new ArrayList<Long>();
+    for (String json : statuses) {
+      try {
+        Status s = TwitterObjectFactory.createStatus(json);
+        ids.add(s.getId());
+      } catch (TwitterException e) {
+        System.out.println("Failed to Parse: " + json);
+        e.printStackTrace();
+      }
+    }
+    return ids;
+  }
+
   public static List<Long> getTweetIDs(List<Status> statuses) {
     return getTweetIDs(statuses, true);
   }

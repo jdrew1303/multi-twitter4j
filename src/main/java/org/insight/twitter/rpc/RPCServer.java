@@ -16,26 +16,59 @@ import org.insight.twitter.util.EndPoint;
 
 import twitter4j.TwitterException;
 
+import com.rabbitmq.client.AMQP.Queue.DeleteOk;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
 public class RPCServer {
 
-  public static void main(String[] args) throws InterruptedException {
-    // Bots:
-    Set<String> bots = RPCServer.getConfiguredBots();
+  public static void main(String[] args) throws InterruptedException, IOException {
 
-    //EndPoint[] endpoints = new EndPoint[] { EndPoint.STATUSES_LOOKUP };
+    ClassLoader loader = Thread.currentThread().getContextClassLoader();
+    Properties properties = new Properties();
+    try (InputStream resourceStream = loader.getResourceAsStream("twitter4j.properties")) {
+      properties.load(resourceStream);
+    }
+
+    // Bots:
+
+    Set<String> bots = RPCServer.getConfiguredBots(properties);
+
+    //EndPoint[] endpoints = new EndPoint[] { EndPoint.USERS_LOOKUP };
+
+    //}, EndPoint.FAVORITES_LIST, EndPoint.FOLLOWERS_IDS,
+    //        EndPoint.FRIENDS_IDS, EndPoint.LISTS_MEMBERSHIPS };
 
     // By Group "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
-    //EndPoint[] endpoints = EndPoint.fromGroup("/statuses/");
 
-    EndPoint[] endpoints = EndPoint.values();
+    EndPoint[] endpoints = EndPoint.fromGroup("/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/");
+
+    //EndPoint[] endpoints = EndPoint.values();
 
     // Keep a reference to workers for checking rate limits:
     Set<TwitterWorker> workers = new HashSet<TwitterWorker>();
     // Executors:
     Set<ScheduledExecutorService> exs = new HashSet<ScheduledExecutorService>();
 
-    for (EndPoint endpoint : endpoints) {
 
+    // Clear queues:
+
+    try {
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setHost(properties.getProperty("rabbitmq"));
+      Connection connection = factory.newConnection();
+      Channel channel = connection.createChannel();
+      for (EndPoint endpoint : endpoints) {
+        //channel.queueDeleteNoWait(endpoint.toString(), false, false);
+        DeleteOk del = channel.queueDelete(endpoint.toString());
+        System.out.println(del.getMessageCount());
+      }
+    } catch (Exception e) {
+    }
+
+    // Create Bots:
+    for (EndPoint endpoint : endpoints) {
       Set<String> loadBots = new HashSet<>(bots);
       System.out.println("\nEndpoint:: " + endpoint);
       if (endpoint.hasApplicationOnlySupport()) {
@@ -75,30 +108,19 @@ public class RPCServer {
   /*
    * Read config file, extract all the access tokens.
    */
-  public static Set<String> getConfiguredBots() {
+  public static Set<String> getConfiguredBots(Properties t4jProperties) {
     Set<String> botIDs = new HashSet<>();
-
-    ClassLoader loader = Thread.currentThread().getContextClassLoader();
-    Properties t4jProperties = new Properties();
-    try (InputStream resourceStream = loader.getResourceAsStream("twitter4j.properties")) {
-      System.out.println("Reading Bot Configs from: " + "/" + "twitter4j.properties");
-      t4jProperties.load(resourceStream);
-
-      // Find bots we have...
-      // Config file must be well formed!
-      Pattern p = Pattern.compile("bot\\.(.*?)\\.oauth\\.accessTokenSecret");
-      for (String key : t4jProperties.stringPropertyNames()) {
-        Matcher m = p.matcher(key);
-        if (m.find()) {
-          String strBotNum = m.group(1);
-          botIDs.add("bot." + strBotNum);
-          System.out.println("Detected config for: " + strBotNum);
-        }
+    System.out.println("Reading Bot Configs from: " + "/" + "twitter4j.properties");
+    // Find bots we have...
+    // Config file must be well formed!
+    Pattern p = Pattern.compile("bot\\.(.*?)\\.oauth\\.accessTokenSecret");
+    for (String key : t4jProperties.stringPropertyNames()) {
+      Matcher m = p.matcher(key);
+      if (m.find()) {
+        String strBotNum = m.group(1);
+        botIDs.add("bot." + strBotNum);
+        System.out.println("Detected config for: " + strBotNum);
       }
-
-    } catch (IOException e) {
-      System.err.println("IO ERROR Reading Properties!");
-      e.printStackTrace();
     }
     return botIDs;
   }

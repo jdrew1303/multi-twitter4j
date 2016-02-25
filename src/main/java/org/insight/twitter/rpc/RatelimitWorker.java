@@ -89,7 +89,7 @@ class RatelimitWorker implements Runnable {
         channel.basicPublish("", props.getReplyTo(), replyProps.build(), response);
         channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 
-        System.out.println(endpoint + " " + rl.getRemaining() + " of " + rl.getLimit() + " Reset in " + rl.getSecondsUntilReset());
+        System.out.println(this.ident + " " + endpoint + " " + rl.getRemaining() + " of " + rl.getLimit() + " Reset in " + rl.getSecondsUntilReset());
       }
 
     } catch (IOException | ShutdownSignalException | ConsumerCancelledException | InterruptedException e) {

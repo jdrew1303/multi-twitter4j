@@ -67,36 +67,36 @@ public class RPCClient {
     AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(corrId).replyTo(this.replyQueueName).build();
 
     try {
+      //System.out.println("Call: send to:" + queue.toString() + corrId);
       this.channel.basicPublish("", queue.toString(), props, url.getBytes());
     } catch (IOException e) {
       e.printStackTrace();
     }
 
     String response = "";
-    while (true) {
-      try {
-        QueueingConsumer.Delivery delivery = this.consumer.nextDelivery();
-        //StringBuilder sb = new StringBuilder();
-        //delivery.getProperties().appendPropertyDebugStringTo(sb);
-        //System.out.println(sb.toString());
-        if (delivery.getProperties().getCorrelationId().equals(corrId)) {
-          byte[] bytes = delivery.getBody();
-          response = new String(bytes);
-          if ((null != delivery.getProperties().getType()) && "ERROR".equalsIgnoreCase(delivery.getProperties().getType())) {
-            ObjectNode j = (ObjectNode) this.mapper.readTree(bytes);
-            j.remove("stackTrace");
-            throw new TwitterException(j.toString());
-          }
-          break;
+
+    try {
+
+      QueueingConsumer.Delivery delivery = this.consumer.nextDelivery();
+      //StringBuilder sb = new StringBuilder();
+      //delivery.getProperties().appendPropertyDebugStringTo(sb);
+      //System.out.println(sb.toString());
+      if (delivery.getProperties().getCorrelationId().equals(corrId)) {
+        byte[] bytes = delivery.getBody();
+        response = new String(bytes);
+        if (((delivery.getProperties().getType()) != null) && "ERROR".equalsIgnoreCase(delivery.getProperties().getType())) {
+          ObjectNode j = (ObjectNode) this.mapper.readTree(bytes);
+          j.remove("stackTrace");
+          throw new TwitterException(j.toString());
         }
-      } catch (ShutdownSignalException | ConsumerCancelledException | InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        break;
-      } catch (IOException e) {
-        throw new TwitterException(e);
       }
+
+    } catch (ShutdownSignalException | ConsumerCancelledException | InterruptedException e) {
+      throw new TwitterException(e);
+    } catch (IOException e) {
+      throw new TwitterException(e);
     }
+
     return response;
   }
 

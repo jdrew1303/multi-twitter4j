@@ -1,6 +1,7 @@
 package org.insight.twitter.rpc;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,7 +36,7 @@ class TwitterWorker implements Runnable {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
-  public volatile RateLimitStatus cachedRateLimit = new RateLimitStatusImpl().withRemaining(1);
+  public RateLimitStatus cachedRateLimit = new RateLimitStatusImpl().withRemaining(1);
   public final String TASK_QUEUE_NAME;
   public final String ident;
 
@@ -44,7 +45,7 @@ class TwitterWorker implements Runnable {
   private final Twitter t4jRateLimitConnection;
 
   public TwitterWorker(String ident, EndPoint endpoint, ScheduledExecutorService ex) throws TwitterException {
-    TASK_QUEUE_NAME = endpoint.toString();
+    this.TASK_QUEUE_NAME = endpoint.toString();
     this.ident = ident;
     this.ex = ex;
 
@@ -65,12 +66,12 @@ class TwitterWorker implements Runnable {
     RateLimitStatusListener listener = new RateLimitStatusListener() {
       @Override
       public void onRateLimitStatus(RateLimitStatusEvent event) {
-        TwitterWorker.this.cachedRateLimit = event.getRateLimitStatus();
+        setRateLimit(event.getRateLimitStatus());
       }
 
       @Override
       public void onRateLimitReached(RateLimitStatusEvent event) {
-        TwitterWorker.this.cachedRateLimit = event.getRateLimitStatus();
+        setRateLimit(event.getRateLimitStatus());
       }
     };
     t4jConnection.addRateLimitStatusListener(listener);
@@ -89,9 +90,12 @@ class TwitterWorker implements Runnable {
       System.err.println(this.ident + " Error Refreshing Ratelimit for: " + this.TASK_QUEUE_NAME + "  " + newRateLimitStatus.getRemaining());
       e.printStackTrace();
     }
-    cachedRateLimit = newRateLimitStatus;
-
+    setRateLimit(newRateLimitStatus);
     //System.out.println(ident + " New Ratelimit : " + TASK_QUEUE_NAME + "  " + cachedRateLimit);
+  }
+
+  private void setRateLimit(RateLimitStatus newRateLimitStatus) {
+    this.cachedRateLimit = newRateLimitStatus;
   }
 
   @Override
@@ -108,12 +112,16 @@ class TwitterWorker implements Runnable {
       System.out.println(this.ident + " Ready for RPC requests on " + this.TASK_QUEUE_NAME + ": Limit = " + this.cachedRateLimit.getRemaining());
 
       // Consume while ratelimit allows
-      while (this.cachedRateLimit.getRemaining() > 0) {
+      while (this.cachedRateLimit.getRemaining() > 1) {
         // Get a message (task) from an endpoint
         QueueingConsumer.Delivery delivery;
+
+        //System.out.println(TASK_QUEUE_NAME + "Get Next delivery... ");
         delivery = consumer.nextDelivery();
         AMQP.BasicProperties props = delivery.getProperties();
         AMQP.BasicProperties.Builder replyProps = new AMQP.BasicProperties.Builder().correlationId(props.getCorrelationId());
+        //System.out.println(TASK_QUEUE_NAME + " Got delivery:" + props.getCorrelationId());
+
         byte[] response;
 
         String logmsg = "";
@@ -129,10 +137,9 @@ class TwitterWorker implements Runnable {
           //System.out.println(this.ident + " Worker Got : " + response.length + " bytes");
           channel.basicPublish("", props.getReplyTo(), replyProps.build(), response);
           channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+
         } catch (TwitterException e) {
-
           logmsg += " ERROR: " + this.TASK_QUEUE_NAME + " : " + e.getErrorMessage();
-
           // build error response:
           response = this.mapper.writeValueAsBytes(e);
           // Don't retry unless it's a network issue, or rate limit
@@ -163,7 +170,7 @@ class TwitterWorker implements Runnable {
     howLong = 1 > howLong ? 13 : howLong + 7;
     this.ex.schedule(this, howLong, TimeUnit.SECONDS);
 
-    System.out.println(this.ident + " Scheduled reconnect " + this.TASK_QUEUE_NAME + " in " + howLong);
+    System.out.println(this.ident + " " + new Date() + " Scheduled reconnect " + this.TASK_QUEUE_NAME + " in " + howLong + " ");
   }
 
 }
