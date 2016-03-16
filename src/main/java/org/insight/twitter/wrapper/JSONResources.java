@@ -75,9 +75,9 @@ public interface JSONResources {
 
   <T> String showUserJSON(T ident) throws TwitterException;
 
-  <T> List<String> getContributorsJSON(T ident) throws TwitterException;
+  //<T> List<String> getContributorsJSON(T ident) throws TwitterException;
 
-  <T> List<String> getContributeesJSON(T ident) throws TwitterException;
+  //<T> List<String> getContributeesJSON(T ident) throws TwitterException;
 
   /*
    * FavoritesResources

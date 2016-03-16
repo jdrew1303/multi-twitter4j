@@ -118,8 +118,9 @@ public enum EndPoint implements ApplicationOnlySupport {
       return false;
     }
   },
+
   /*
-   * DEPRECATE!
+   * DEPRECATED!
 
   USERS_CONTRIBUTEES {
     @Override
@@ -143,7 +144,6 @@ public enum EndPoint implements ApplicationOnlySupport {
       return false;
     }
   },
-
   */
 
   /*

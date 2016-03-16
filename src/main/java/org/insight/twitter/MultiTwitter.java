@@ -41,6 +41,7 @@ import twitter4j.HttpParameter;
 import twitter4j.Paging;
 import twitter4j.Query;
 import twitter4j.RateLimitStatus;
+import twitter4j.ResponseList;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjects;
 import twitter4j.User;
@@ -262,6 +263,8 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   /*
    * Search
    */
+
+
 
   @Override
   public List<String> getBulkSearchResults(Query query, int maxElements) throws TwitterException {
@@ -501,6 +504,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     }
   }
 
+  /*
   @Override
   public <T> List<String> getContributeesJSON(T ident) throws TwitterException {
     if (ident instanceof String) {
@@ -522,6 +526,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
       throw new IllegalArgumentException();
     }
   }
+  */
 
   /*
    * FavoritesResources
@@ -789,6 +794,32 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   public RateLimitStatus getRateLimitStatus(EndPoint endpoint) throws TwitterException {
     String rl = rpc.call(EndPoint.APPLICATION_RATE_LIMIT_STATUS, endpoint.toString());
     return TwitterObjects.newRateLimitStatus(rl);
+  }
+
+
+
+  @Override
+  public ResponseList<User> getContributees(long userId) throws TwitterException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ResponseList<User> getContributees(String screenName) throws TwitterException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ResponseList<User> getContributors(long userId) throws TwitterException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ResponseList<User> getContributors(String screenName) throws TwitterException {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /*

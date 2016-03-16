@@ -55,7 +55,7 @@ import twitter4j.api.UsersResources;
 
 /*
  * Selected Methods from twitter4J Twitter interface. Unsupported methods throw exceptions.
- * 
+ *
  * Partially implemented: FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, Not Implemented: For Authenticating Users Only:
  * SpamReportingResource, SavedSearchesResources, SuggestedUsersResources, DirectMessagesResources, OAuthSupport, OAuth2Support, TwitterBase, Rate Limits Are
  * Handled internally: HelpResources
@@ -712,6 +712,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
     return TwitterObjectFactory.createUser(showUserJSON(screenName));
   }
 
+  /*
   @Override
   public ResponseList<User> getContributees(long userId) throws TwitterException {
     return newUserResponseList(getContributeesJSON(userId));
@@ -731,6 +732,7 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   public ResponseList<User> getContributors(String screenName) throws TwitterException {
     return newUserResponseList(getContributorsJSON(screenName));
   }
+  */
 
   /*
    * Unsupported UsersResources
