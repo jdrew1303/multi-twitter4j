@@ -32,30 +32,17 @@ public class RPCServer {
     }
 
     // Bots:
-
     Set<String> bots = RPCServer.getConfiguredBots(properties);
 
-    //EndPoint[] endpoints = new EndPoint[] { EndPoint.SEARCH_TWEETS };
-
-    //}, EndPoint.FAVORITES_LIST, EndPoint.FOLLOWERS_IDS,
-    //        EndPoint.FRIENDS_IDS, EndPoint.LISTS_MEMBERSHIPS };
-
     // By Group "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
-
-    EndPoint[] endpoints = EndPoint.fromGroup("search", "statuses", "friends", "followers", "friendships", "users", "favorites", "lists");
-    //EndPoint[] endpoints = EndPoint.fromGroup("lists", "users", "search");
-
-
-    //EndPoint[] endpoints = EndPoint.values();
+    EndPoint[] endpoints = EndPoint.fromGroup("search", "statuses", "friends", "followers", "friendships", "users", "favorites", "lists", "geo", "trends");
 
     // Keep a reference to workers for checking rate limits:
     Set<TwitterWorker> workers = new HashSet<TwitterWorker>();
     // Executors:
     Set<ScheduledExecutorService> exs = new HashSet<ScheduledExecutorService>();
 
-
     // Clear queues:
-
     try {
       ConnectionFactory factory = new ConnectionFactory();
       factory.setHost(properties.getProperty("rabbitmq"));
