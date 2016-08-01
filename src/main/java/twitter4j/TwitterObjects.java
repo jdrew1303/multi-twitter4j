@@ -111,6 +111,8 @@ public class TwitterObjects {
         long id = Long.parseLong(e.getKey());
         if (!e.getValue().isNull()) {
           sort.put(id, e.getValue().toString());
+        } else {
+          sort.put(id, null);
         }
       }
     } catch (IOException e) {

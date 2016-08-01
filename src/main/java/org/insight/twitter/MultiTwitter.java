@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -24,9 +25,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.insight.twitter.rpc.RPCClient;
 import org.insight.twitter.util.EndPoint;
+import org.insight.twitter.util.PartitioningSpliterator;
 import org.insight.twitter.util.TwitterCursor;
 import org.insight.twitter.util.TwitterJSONCursor;
 import org.insight.twitter.util.TwitterManualPage;
@@ -48,9 +51,9 @@ import twitter4j.User;
 
 /*
  * Only implements REST API calls that can be spread over multiple accounts.
- *
+ * 
  * Should be straight forward to add unimplemented methods, if you really need them.
- *
+ * 
  * All unimplemented methods will throw UnsupportedMethodException
  */
 public class MultiTwitter extends TwitterResources implements AutoCloseable {
@@ -134,11 +137,37 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     return sort;
   }
 
+  public void getBulkTweetLookupStream(Stream<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
+    ExecutorService executor = Executors.newWorkStealingPool(64); // num of bots
+
+    Stream<List<Long>> partitioned = PartitioningSpliterator.partition(ids, 100, 100);
+
+    partitioned.parallel().map(TwitterObjects::toPrimitive).forEach(batch -> CompletableFuture.supplyAsync(() -> {
+      Map<Long, String> m = new HashMap<Long, String>();
+      try (MultiTwitter mt = new MultiTwitter()) {
+        m = mt.lookupJSON(batch);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      return m;
+    }, executor).thenAccept(m -> {
+      m.forEach(action);
+    }));
+  }
+
   public void getBulkTweetLookupMap(Collection<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
     Set<Long> uniqueIds = new LinkedHashSet<Long>(ids);
     List<List<Long>> batches = TwitterObjects.partitionList(new ArrayList<Long>(uniqueIds), 100);
 
     ExecutorService executor = Executors.newWorkStealingPool();
+
+    /*
+    public static ExecutorService executor = Executors.newFixedThreadPool(8, r -> {
+      Thread thread = new Thread(r);
+      thread.setDaemon(true);
+      return thread;
+    });*/
+
     ExecutorCompletionService<Map<Long, String>> completionService = new ExecutorCompletionService<Map<Long, String>>(executor);
 
     for (List<Long> batch : batches) {

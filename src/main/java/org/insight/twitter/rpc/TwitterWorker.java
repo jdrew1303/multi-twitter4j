@@ -100,7 +100,7 @@ class TwitterWorker implements Runnable {
 
   @Override
   public void run() {
-    //System.out.println(ident + " Running Worker " + TASK_QUEUE_NAME);
+    System.out.println(ident + " Starting Worker " + TASK_QUEUE_NAME);
     this.refreshRateLimit();
 
     try {
@@ -112,7 +112,7 @@ class TwitterWorker implements Runnable {
       System.out.println(this.ident + " Ready for RPC requests on " + this.TASK_QUEUE_NAME + ": Limit = " + this.cachedRateLimit.getRemaining());
 
       // Consume while ratelimit allows
-      while (this.cachedRateLimit.getRemaining() > 1) {
+      while (this.cachedRateLimit.getRemaining() > 0) {
         // Get a message (task) from an endpoint
         QueueingConsumer.Delivery delivery;
 
@@ -130,6 +130,7 @@ class TwitterWorker implements Runnable {
           String url = new String(delivery.getBody());
 
           logmsg += this.ident + " " + url + " ";
+          logmsg += this.ident + " ";
 
           TwitterImpl raw = (TwitterImpl) this.t4jConnection;
           HttpResponse r = raw.get(raw.getConfiguration().getRestBaseURL() + url);

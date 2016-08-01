@@ -23,7 +23,7 @@ import twitter4j.UserList;
  */
 public class TwitterLists {
 
-  // Twitter App Write permissions
+  // Twitter App with write permissions:
   public final Twitter ownerTwitter;
 
   public TwitterLists() {
@@ -77,7 +77,13 @@ public class TwitterLists {
   /*
    * Copy users from ownerTwitter lists to a single target list
    */
+
   public void merge(UserList target, List<UserList> sources) throws TwitterException, IOException {
+    merge(target, sources, new HashSet<Long>());
+  }
+
+
+  public void merge(UserList target, List<UserList> sources, Set<Long> filter) throws TwitterException, IOException {
     System.out.println("Target List: " + target.toString());
     HashSet<Long> userIDs = new HashSet<Long>();
 
@@ -97,6 +103,9 @@ public class TwitterLists {
       }
       i++;
     }
+
+    userIDs.removeAll(filter);
+
     updateTwitter(target, userIDs);
   }
 

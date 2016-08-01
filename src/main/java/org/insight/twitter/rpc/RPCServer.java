@@ -34,9 +34,13 @@ public class RPCServer {
     // Bots:
     Set<String> bots = RPCServer.getConfiguredBots(properties);
 
-    // By Group "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
-    // "search", "statuses", "friends", "followers", "friendships", "users", "favorites", "lists", "trends"
-    EndPoint[] endpoints = EndPoint.fromGroup("statuses", "users");
+    // Single Endpoint:
+    //EndPoint[] endpoints = { EndPoint.STATUSES_USER_TIMELINE };
+
+    // By Group:
+    // "/search/", "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
+    EndPoint[] endpoints =
+        EndPoint.fromGroup("/search/", "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/");
 
     // Keep a reference to workers for checking rate limits:
     Set<TwitterWorker> workers = new HashSet<TwitterWorker>();
@@ -79,7 +83,8 @@ public class RPCServer {
           System.err.println("FAILED TO ADD WORKER: " + bot + endpoint);
           e.printStackTrace();
         }
-      }
+        Thread.sleep(1000);
+      } // bots
 
       exs.add(executor);
       Thread.sleep(2000);
