@@ -120,33 +120,6 @@ public enum EndPoint implements ApplicationOnlySupport {
   },
 
   /*
-   * DEPRECATED!
-
-  USERS_CONTRIBUTEES {
-    @Override
-    public String toString() {
-      return "/users/contributees";
-    }
-
-    @Override
-    public boolean hasApplicationOnlySupport() {
-      return false;
-    }
-  },
-  USERS_CONTRIBUTORS {
-    @Override
-    public String toString() {
-      return "/users/contributors";
-    }
-
-    @Override
-    public boolean hasApplicationOnlySupport() {
-      return false;
-    }
-  },
-  */
-
-  /*
    * FavoritesResources
    */
   FAVORITES_LIST {
@@ -174,7 +147,7 @@ public enum EndPoint implements ApplicationOnlySupport {
   LISTS_MEMBERS_SHOW {
     @Override
     public String toString() {
-      return "/lists/members/show";
+      return "/lists/members/show"; // DEPRECATE
     }
   },
   LISTS_MEMBERSHIPS {

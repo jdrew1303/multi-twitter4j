@@ -44,7 +44,6 @@ import twitter4j.HttpParameter;
 import twitter4j.Paging;
 import twitter4j.Query;
 import twitter4j.RateLimitStatus;
-import twitter4j.ResponseList;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjects;
 import twitter4j.User;
@@ -137,37 +136,14 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     return sort;
   }
 
-  public void getBulkTweetLookupStream(Stream<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
-    ExecutorService executor = Executors.newWorkStealingPool(64); // num of bots
-
-    Stream<List<Long>> partitioned = PartitioningSpliterator.partition(ids, 100, 100);
-
-    partitioned.parallel().map(TwitterObjects::toPrimitive).forEach(batch -> CompletableFuture.supplyAsync(() -> {
-      Map<Long, String> m = new HashMap<Long, String>();
-      try (MultiTwitter mt = new MultiTwitter()) {
-        m = mt.lookupJSON(batch);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-      return m;
-    }, executor).thenAccept(m -> {
-      m.forEach(action);
-    }));
-  }
-
+  /*
+   * For small collections that can fit into memory:
+   */
   public void getBulkTweetLookupMap(Collection<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
     Set<Long> uniqueIds = new LinkedHashSet<Long>(ids);
     List<List<Long>> batches = TwitterObjects.partitionList(new ArrayList<Long>(uniqueIds), 100);
 
     ExecutorService executor = Executors.newWorkStealingPool();
-
-    /*
-    public static ExecutorService executor = Executors.newFixedThreadPool(8, r -> {
-      Thread thread = new Thread(r);
-      thread.setDaemon(true);
-      return thread;
-    });*/
-
     ExecutorCompletionService<Map<Long, String>> completionService = new ExecutorCompletionService<Map<Long, String>>(executor);
 
     for (List<Long> batch : batches) {
@@ -187,11 +163,29 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
       } catch (ExecutionException e) {
         e.printStackTrace();
       } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
       }
     }
+  }
 
+  /*
+   * For larger collections without logging progress, deletes. For very large collections HydrateTweets.java
+   */
+  public void getBulkTweetLookupStream(Stream<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
+    ExecutorService executor = Executors.newWorkStealingPool(); // or num of bots
+    Stream<List<Long>> partitioned = PartitioningSpliterator.partition(ids, 100, 100);
+
+    partitioned.parallel().map(TwitterObjects::toPrimitive).forEach(batch -> CompletableFuture.supplyAsync(() -> {
+      Map<Long, String> m = new HashMap<Long, String>();
+      try (MultiTwitter mt = new MultiTwitter()) {
+        m = mt.lookupJSON(batch);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      return m;
+    }, executor).thenAccept(m -> {
+      m.forEach(action);
+    }).join());
   }
 
   /*
@@ -823,32 +817,6 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   public RateLimitStatus getRateLimitStatus(EndPoint endpoint) throws TwitterException {
     String rl = rpc.call(EndPoint.APPLICATION_RATE_LIMIT_STATUS, endpoint.toString());
     return TwitterObjects.newRateLimitStatus(rl);
-  }
-
-
-
-  @Override
-  public ResponseList<User> getContributees(long userId) throws TwitterException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public ResponseList<User> getContributees(String screenName) throws TwitterException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public ResponseList<User> getContributors(long userId) throws TwitterException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public ResponseList<User> getContributors(String screenName) throws TwitterException {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   /*

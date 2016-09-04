@@ -53,7 +53,9 @@ class RatelimitWorker implements Runnable {
         rl = rl.mergeWith(w.cachedRateLimit);
       }
 
-      System.out.println(endpoint + " " + rl.getRemaining() + " of " + rl.getLimit() + " Reset in " + rl.getSecondsUntilReset());
+      if (BOTS.get(endpoint.toString()).size() > 0) {
+        System.out.println(endpoint + " " + rl.getRemaining() + " of " + rl.getLimit() + " Reset in " + rl.getSecondsUntilReset());
+      }
 
     }
     System.out.println("----------");

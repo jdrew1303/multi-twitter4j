@@ -3,7 +3,9 @@ package org.insight.twitter.rpc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -35,12 +37,14 @@ public class RPCServer {
     Set<String> bots = RPCServer.getConfiguredBots(properties);
 
     // Single Endpoint:
-    //EndPoint[] endpoints = { EndPoint.STATUSES_USER_TIMELINE };
-
+    // EndPoint[] endpoints = { EndPoint.STATUSES_LOOKUP };
     // By Group:
     // "/search/", "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
-    EndPoint[] endpoints =
-        EndPoint.fromGroup("/search/", "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/");
+    // EndPoint[] endpoints = EndPoint.fromGroup("/statuses/");
+
+    List<EndPoint> endpoints =
+        Arrays.asList(EndPoint.STATUSES_LOOKUP, EndPoint.USERS_LOOKUP, EndPoint.USERS_SHOW, EndPoint.STATUSES_USER_TIMELINE, EndPoint.FOLLOWERS_IDS,
+            EndPoint.FRIENDS_IDS, EndPoint.FAVORITES_LIST, EndPoint.LISTS_MEMBERSHIPS, EndPoint.LISTS_OWNERSHIPS, EndPoint.LISTS_MEMBERS);
 
     // Keep a reference to workers for checking rate limits:
     Set<TwitterWorker> workers = new HashSet<TwitterWorker>();
@@ -56,7 +60,7 @@ public class RPCServer {
       for (EndPoint endpoint : endpoints) {
         //channel.queueDeleteNoWait(endpoint.toString(), false, false);
         DeleteOk del = channel.queueDelete(endpoint.toString());
-        System.out.println(del.getMessageCount());
+        System.out.println(endpoint.toString() + " Deleted from queue:" + del.getMessageCount());
       }
     } catch (Exception e) {
     }

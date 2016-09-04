@@ -55,7 +55,7 @@ import twitter4j.api.UsersResources;
 
 /*
  * Selected Methods from twitter4J Twitter interface. Unsupported methods throw exceptions.
- *
+ * 
  * Partially implemented: FavoritesResources, ListsResources, PlacesGeoResources, TrendsResources, Not Implemented: For Authenticating Users Only:
  * SpamReportingResource, SavedSearchesResources, SuggestedUsersResources, DirectMessagesResources, OAuthSupport, OAuth2Support, TwitterBase, Rate Limits Are
  * Handled internally: HelpResources
@@ -713,28 +713,6 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   }
 
   /*
-  @Override
-  public ResponseList<User> getContributees(long userId) throws TwitterException {
-    return newUserResponseList(getContributeesJSON(userId));
-  }
-
-  @Override
-  public ResponseList<User> getContributees(String screenName) throws TwitterException {
-    return newUserResponseList(getContributeesJSON(screenName));
-  }
-
-  @Override
-  public ResponseList<User> getContributors(long userId) throws TwitterException {
-    return newUserResponseList(getContributorsJSON(userId));
-  }
-
-  @Override
-  public ResponseList<User> getContributors(String screenName) throws TwitterException {
-    return newUserResponseList(getContributorsJSON(screenName));
-  }
-  */
-
-  /*
    * Unsupported UsersResources
    */
 
@@ -893,6 +871,30 @@ public abstract class TwitterResources implements TimelinesResources, TweetsReso
   @Override
   @Deprecated
   public PagableResponseList<User> getMutesList(long cursor) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public ResponseList<User> getContributees(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public ResponseList<User> getContributees(String screenName) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public ResponseList<User> getContributors(long userId) throws TwitterException {
+    throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
+  }
+
+  @Override
+  @Deprecated
+  public ResponseList<User> getContributors(String screenName) throws TwitterException {
     throw new TwitterException(TwitterResources.UNSUPPORTED_METHOD);
   }
 
