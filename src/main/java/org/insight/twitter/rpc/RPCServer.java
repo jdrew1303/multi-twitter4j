@@ -37,11 +37,12 @@ public class RPCServer {
     Set<String> bots = RPCServer.getConfiguredBots(properties);
 
     // Single Endpoint:
-    // EndPoint[] endpoints = { EndPoint.STATUSES_LOOKUP };
+    // EndPoint[] endpoints = { EndPoint.STATUSES_USER_TIMELINE };
     // By Group:
     // "/search/", "/statuses/", "/friends/", "/followers/", "/friendships/", "/users/", "/favorites/", "/lists/", "/geo/", "/trends/"
     // EndPoint[] endpoints = EndPoint.fromGroup("/statuses/");
 
+    // Subset of useful endpoints:
     List<EndPoint> endpoints =
         Arrays.asList(EndPoint.STATUSES_LOOKUP, EndPoint.USERS_LOOKUP, EndPoint.USERS_SHOW, EndPoint.STATUSES_USER_TIMELINE, EndPoint.FOLLOWERS_IDS,
             EndPoint.FRIENDS_IDS, EndPoint.FAVORITES_LIST, EndPoint.LISTS_MEMBERSHIPS, EndPoint.LISTS_OWNERSHIPS, EndPoint.LISTS_MEMBERS);

@@ -34,6 +34,16 @@ public class TwitterLists {
   /*
    * Util:
    */
+
+  public UserList list(String url) throws TwitterException {
+    String[] split =
+        url.replaceFirst("http://", "https://").replaceFirst("www.twitter.com/", "twitter.com/").replaceFirst("https://twitter.com/", "").split("/lists/", 2);
+    String user = split[0].replaceAll("/", "");
+    String slug = split[1].replaceAll("/", "");
+
+    return list(user, slug);
+  }
+
   public UserList list(String user, String slug) throws TwitterException {
     try (MultiTwitter multiTwitter = new MultiTwitter()) {
       return multiTwitter.list().showUserList(user, slug);

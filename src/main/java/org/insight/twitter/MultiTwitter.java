@@ -49,12 +49,9 @@ import twitter4j.TwitterObjects;
 import twitter4j.User;
 
 /*
- * Only implements REST API calls that can be spread over multiple accounts.
- * 
- * Should be straight forward to add unimplemented methods, if you really need them.
- * 
- * All unimplemented methods will throw UnsupportedMethodException
+ * Only implements REST API calls that can be spread over multiple accounts. All unimplemented methods will throw UnsupportedMethodException
  */
+
 public class MultiTwitter extends TwitterResources implements AutoCloseable {
 
   private RPCClient rpc;
@@ -85,6 +82,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   /*
    * Timelines:
    */
+
   @Override
   public <T> List<String> getBulkUserTimeline(final T ident, long initSinceId, long initMaxId, int maxElements) throws TwitterException {
     return new TwitterPage() {
@@ -129,16 +127,18 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
     }.getElements(maxElements);
   }
 
-  @Override
-  public Map<Long, String> getBulkTweetLookupMap(Collection<Long> ids) throws TwitterException {
-    Map<Long, String> sort = new TreeMap<Long, String>();
-    getBulkTweetLookupMap(ids, sort::put);
-    return sort;
-  }
-
   /*
    * For small collections that can fit into memory:
    */
+
+  @Override
+  public Map<Long, String> getBulkTweetLookupMap(Collection<Long> ids) throws TwitterException {
+    Map<Long, String> sort = new TreeMap<Long, String>();
+    Set<Long> uniqueIds = new LinkedHashSet<Long>(ids);
+    getBulkTweetLookupMap(uniqueIds, sort::put);
+    return sort;
+  }
+
   public void getBulkTweetLookupMap(Collection<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
     Set<Long> uniqueIds = new LinkedHashSet<Long>(ids);
     List<List<Long>> batches = TwitterObjects.partitionList(new ArrayList<Long>(uniqueIds), 100);
@@ -169,8 +169,9 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   }
 
   /*
-   * For larger collections without logging progress, deletes. For very large collections HydrateTweets.java
+   * For larger collections without logging progress, or deletes. For very large collections HydrateTweets.java
    */
+
   public void getBulkTweetLookupStream(Stream<Long> ids, BiConsumer<? super Long, ? super String> action) throws TwitterException {
     ExecutorService executor = Executors.newWorkStealingPool(); // or num of bots
     Stream<List<Long>> partitioned = PartitioningSpliterator.partition(ids, 100, 100);
@@ -286,8 +287,6 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   /*
    * Search
    */
-
-
 
   @Override
   public List<String> getBulkSearchResults(Query query, int maxElements) throws TwitterException {
@@ -528,30 +527,6 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
   }
 
   /*
-  @Override
-  public <T> List<String> getContributeesJSON(T ident) throws TwitterException {
-    if (ident instanceof String) {
-      return jsonList(rpc.call(EndPoint.USERS_CONTRIBUTEES, new HttpParameter("screen_name", (String) ident)));
-    } else if (ident instanceof Long) {
-      return jsonList(rpc.call(EndPoint.USERS_CONTRIBUTEES, new HttpParameter("user_id", (Long) ident)));
-    } else {
-      throw new IllegalArgumentException();
-    }
-  }
-
-  @Override
-  public <T> List<String> getContributorsJSON(T ident) throws TwitterException {
-    if (ident instanceof String) {
-      return jsonList(rpc.call(EndPoint.USERS_CONTRIBUTORS, new HttpParameter("screen_name", (String) ident)));
-    } else if (ident instanceof Long) {
-      return jsonList(rpc.call(EndPoint.USERS_CONTRIBUTORS, new HttpParameter("user_id", (Long) ident)));
-    } else {
-      throw new IllegalArgumentException();
-    }
-  }
-  */
-
-  /*
    * FavoritesResources
    */
 
@@ -627,42 +602,6 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
 
       return rpc.call(EndPoint.LISTS_SUBSCRIBERS, new HttpParameter("owner_id", (Long) ident), new HttpParameter("slug", slug), new HttpParameter("count",
           count), new HttpParameter("cursor", cursor), new HttpParameter("skip_status", skipStatus));
-    } else {
-      throw new IllegalArgumentException();
-    }
-  }
-
-  @Override
-  public String showUserListSubscriptionJSON(long listId, long userId) throws TwitterException {
-    return rpc.call(EndPoint.LISTS_SUBSCRIBERS_SHOW, new HttpParameter("list_id", listId), new HttpParameter("user_id", userId));
-  }
-
-  @Override
-  public <T> String getUserListSubscriptionJSON(T ident, String slug, long userId) throws TwitterException {
-    if (ident instanceof String) {
-      return rpc.call(EndPoint.LISTS_SUBSCRIBERS_SHOW, new HttpParameter("owner_screen_name", (String) ident), new HttpParameter("slug", slug),
-          new HttpParameter("user_id", userId));
-    } else if (ident instanceof Long) {
-      return rpc.call(EndPoint.LISTS_SUBSCRIBERS_SHOW, new HttpParameter("owner_id", (Long) ident), new HttpParameter("slug", slug), new HttpParameter(
-          "user_id", userId));
-    } else {
-      throw new IllegalArgumentException();
-    }
-  }
-
-  @Override
-  public String showUserListMembershipJSON(long listId, long userId) throws TwitterException {
-    return rpc.call(EndPoint.LISTS_MEMBERS_SHOW, new HttpParameter("list_id", listId), new HttpParameter("user_id", userId));
-  }
-
-  @Override
-  public <T> String getUserListMembershipJSON(T ident, String slug, long userId) throws TwitterException {
-    if (ident instanceof String) {
-      return rpc.call(EndPoint.LISTS_MEMBERS_SHOW, new HttpParameter("owner_screen_name", (String) ident), new HttpParameter("slug", slug), new HttpParameter(
-          "user_id", userId));
-    } else if (ident instanceof Long) {
-      return rpc.call(EndPoint.LISTS_MEMBERS_SHOW, new HttpParameter("owner_id", (Long) ident), new HttpParameter("slug", slug), new HttpParameter("user_id",
-          userId));
     } else {
       throw new IllegalArgumentException();
     }
@@ -804,7 +743,7 @@ public class MultiTwitter extends TwitterResources implements AutoCloseable {
    * Get combined Rate Limit for an endpoint (or several)
    */
   public Map<String, RateLimitStatus> getRateLimitStatus(EndPoint... endpoints) throws TwitterException {
-    Map<String, RateLimitStatus> rateLimits = new HashMap<>();
+    Map<String, RateLimitStatus> rateLimits = new HashMap<String, RateLimitStatus>();
     for (EndPoint target : endpoints) {
       rateLimits.put(target.toString(), getRateLimitStatus(target));
     }

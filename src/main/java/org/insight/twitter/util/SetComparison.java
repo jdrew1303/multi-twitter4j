@@ -19,8 +19,6 @@ public class SetComparison<T> {
     union.addAll(s2);
     intersection = new HashSet<T>(s1);
     intersection.retainAll(s2);
-
-
   }
 
   public double getJaccard() {

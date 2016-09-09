@@ -39,7 +39,9 @@ import org.insight.twitter.util.PartitioningSpliterator;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjects;
 
-
+/*
+ * Hydrate very large collections of tweets, log deletions, progress:
+ */
 public class HydrateTweets {
 
   public static Map<Long, String> getTweetBatch(long[] batch, PrintWriter errors) {

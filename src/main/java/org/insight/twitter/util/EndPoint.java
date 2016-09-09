@@ -144,12 +144,6 @@ public enum EndPoint implements ApplicationOnlySupport {
       return "/lists/members";
     }
   },
-  LISTS_MEMBERS_SHOW {
-    @Override
-    public String toString() {
-      return "/lists/members/show"; // DEPRECATE
-    }
-  },
   LISTS_MEMBERSHIPS {
     @Override
     public String toString() {
@@ -178,12 +172,6 @@ public enum EndPoint implements ApplicationOnlySupport {
     @Override
     public String toString() {
       return "/lists/subscribers";
-    }
-  },
-  LISTS_SUBSCRIBERS_SHOW {
-    @Override
-    public String toString() {
-      return "/lists/subscribers/show";
     }
   },
   LISTS_SUBSCRIPTIONS {

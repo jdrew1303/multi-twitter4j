@@ -10,24 +10,19 @@ import twitter4j.Query;
 import twitter4j.TwitterException;
 
 /*
- * Wrap TwitterResources methods to access original JSON from Twitter.
+ * TwitterResources methods to access original JSON from Twitter.
  */
 public interface JSONResources {
 
   /*
-   * CursorResources
-   */
-
-  /*
    * TimelinesResources
    */
+
   <T> List<String> getUserTimelineJSON(T ident, Paging paging) throws TwitterException;
 
   <T> List<String> getUserListStatusesJSON(T ident, String slug, Paging paging) throws TwitterException;
 
   List<String> getUserListStatusesJSON(long listId, Paging paging) throws TwitterException;
-
-  // Use Bulk Request
 
   /*
    * TweetsResources
@@ -75,10 +70,6 @@ public interface JSONResources {
 
   <T> String showUserJSON(T ident) throws TwitterException;
 
-  //<T> List<String> getContributorsJSON(T ident) throws TwitterException;
-
-  //<T> List<String> getContributeesJSON(T ident) throws TwitterException;
-
   /*
    * FavoritesResources
    */
@@ -95,23 +86,7 @@ public interface JSONResources {
 
   List<String> getUserListsJSON(long listOwnerUserId, boolean reverse) throws TwitterException;
 
-  String showUserListSubscriptionJSON(long listId, long userId) throws TwitterException;
-
-  <T> String getUserListSubscriptionJSON(T ident, String slug, long userId) throws TwitterException;
-
-  String showUserListSubscriptionJSON(long ownerId, String slug, long userId) throws TwitterException;
-
-  String showUserListSubscriptionJSON(String ownerScreenName, String slug, long userId) throws TwitterException;
-
-  String showUserListMembershipJSON(long listId, long userId) throws TwitterException;
-
   <T> String getUserListMembershipsJSON(T ident, int count, long cursor, boolean filterToOwnedLists) throws TwitterException;
-
-  <T> String getUserListMembershipJSON(T ident, String slug, long userId) throws TwitterException;
-
-  String showUserListMembershipJSON(String ownerScreenName, String slug, long userId) throws TwitterException;
-
-  String showUserListMembershipJSON(long ownerId, String slug, long userId) throws TwitterException;
 
   <T> String getUserListsOwnershipsJSON(T ident, int count, long cursor) throws TwitterException;
 

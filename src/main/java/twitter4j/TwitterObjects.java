@@ -138,7 +138,7 @@ public class TwitterObjects {
   }
 
   public static <T> ResponseList<T> newResponseList(RateLimitStatus ratelimit) {
-    return new ResponseListImpl<T>(ratelimit, 4);
+    return new ResponseListImpl<T>(ratelimit, 4); // 4 = accessLevel == TwitterResponse.READ;
   }
 
   public static ResponseList<Place> newPlaceResponseList(List<String> json) throws TwitterException {
@@ -184,7 +184,7 @@ public class TwitterObjects {
   public static PagableResponseList<User> newPagableUser(String json) throws TwitterException {
     try {
       JsonNode node = TwitterObjects.mapper.readTree(json);
-      PagableResponseList<User> list = new PagableResponseListImpl<>(node.get("previous_cursor").asLong(), node.get("next_cursor").asLong());
+      PagableResponseList<User> list = new PagableResponseListImpl<User>(node.get("previous_cursor").asLong(), node.get("next_cursor").asLong());
       for (JsonNode u : node.get("users")) {
         list.add(TwitterObjectFactory.createUser(u.toString()));
       }
